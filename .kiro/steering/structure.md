@@ -20,7 +20,7 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 | `internal/registry` | サービスのルーティングテーブル管理（登録・解除・検索） |
 | `internal/proxy` | リバースプロキシ転送、Hostヘッダからのサブドメイン抽出 |
 | `internal/management` | 管理HTTP API（サービスのCRUD） |
-| `internal/server` | HTTPサーバ本体、プロキシ/管理APIへのルーティング判定 |
+| `internal/server` | HTTPサーバ本体、プロキシ/管理APIへのルーティング判定。`ServerConfig.Hostname` で追加の自己ホスト名を指定可能（コンテナ環境対応） |
 
 ### エントリポイント
 **Location**: `main.go`
@@ -39,3 +39,11 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
   - 例: `registry.ServiceRegistry`、`proxy.Handler`
 - **依存方向**: `server` → `registry`, `proxy`, `management`（内側に向かう）
 - **コンストラクタパターン**: `NewXxx()` 関数でインターフェースを返す（実装型を隠蔽）
+
+## Routing Decision Pattern
+
+`internal/server` のルーティング判定順序:
+1. Hostヘッダからポートを除去し小文字正規化
+2. `selfHostnames`（`localhost` + `--hostname` 指定値）に一致 → 管理API
+3. サブドメインなし → 管理API
+4. サブドメインあり → レジストリ検索 → プロキシ or 404
