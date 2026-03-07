@@ -18,10 +18,23 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Build
-        run: go build -o localgate .
+      - name: Build binaries
+        run: |
+          GOOS=linux   GOARCH=amd64 go build -o localgate-linux-amd64   .
+          GOOS=linux   GOARCH=arm64 go build -o localgate-linux-arm64   .
+          GOOS=darwin  GOARCH=amd64 go build -o localgate-darwin-amd64  .
+          GOOS=darwin  GOARCH=arm64 go build -o localgate-darwin-arm64  .
+          GOOS=windows GOARCH=amd64 go build -o localgate-windows-amd64.exe .
 
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ github.ref_name }}" localgate --draft --title "${{ github.ref_name }}"
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            localgate-linux-amd64 \
+            localgate-linux-arm64 \
+            localgate-darwin-amd64 \
+            localgate-darwin-arm64 \
+            localgate-windows-amd64.exe \
+            --draft \
+            --title "${{ github.ref_name }}"
