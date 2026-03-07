@@ -16,6 +16,10 @@ Hostヘッダのサブドメイン部分（`foo`、`bar` など）をキーに�
 
 ## インストール
 
+[GitHub Releases](https://github.com/urgm/localgate/releases) からビルド済みバイナリをダウンロードできる。
+
+またはGoでインストール:
+
 ```bash
 go install github.com/urgm/localgate@latest
 ```
