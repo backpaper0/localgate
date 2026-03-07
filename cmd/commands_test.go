@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -83,6 +84,38 @@ func TestRegisterCmd_MissingArgs(t *testing.T) {
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error for missing args, got nil")
+	}
+}
+
+func TestRegisterCmd_PortOnly(t *testing.T) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		t.Fatalf("failed to get hostname: %v", err)
+	}
+	expectedTarget := hostname + ":3000"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req registerServiceRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode request: %v", err)
+		}
+		if req.Target != expectedTarget {
+			t.Errorf("expected target %q, got %q", expectedTarget, req.Target)
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(serviceEntry{Name: req.Name, Target: req.Target})
+	}))
+	defer srv.Close()
+
+	cmd := newRegisterCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--server", srv.URL, "myapp", "3000"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "myapp") {
+		t.Errorf("expected output to contain 'myapp', got: %q", out.String())
 	}
 }
 
