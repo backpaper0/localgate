@@ -46,6 +46,14 @@ localgate start
 localgate start --port 8080
 ```
 
+コンテナ環境など、`localhost` 以外のホスト名で管理APIにアクセスする場合は `--hostname` を指定する:
+
+```bash
+localgate start --hostname localgate.test
+```
+
+`--hostname` を指定すると、そのホスト名への直接アクセスが管理APIとして扱われ、サブドメイン付き（例: `foo.localgate.test`）はプロキシとして動作する。
+
 ### DNS / hosts 設定
 
 `*.localhost` がローカルホストへ解決されるよう設定する。macOS / Linux では `/etc/hosts` に追加するか、`dnsmasq` 等を利用する。
@@ -89,6 +97,30 @@ GET /services
     {"name": "bar", "target": "localhost:8000"}
   ]
 }
+```
+
+## コンテナ環境での利用
+
+Docker ネットワーク内から管理APIにアクセスする場合、`--hostname` でコンテナのホスト名を指定する。
+
+```bash
+docker network create --internal=true prv_net
+docker network create pub_net
+docker run -d --name=lg --hostname=localgate.test -p 9000:9000 \
+  --network=prv_net localgate start --hostname localgate.test
+docker network connect pub_net lg
+```
+
+同じネットワーク内のコンテナから:
+
+```bash
+# サービス登録
+curl -X POST http://localgate.test:9000/services \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"foobar","target":"foobar:8080"}'
+
+# プロキシ経由でアクセス
+curl http://foobar.localgate.test:9000/
 ```
 
 ## ユースケース
