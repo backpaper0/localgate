@@ -38,6 +38,15 @@
 # Run:   go run . start
 ```
 
+## CI/CD
+
+GitHub Actions による自動化パイプライン（`.github/workflows/`）:
+
+- **Test** (`test.yml`): 全プッシュで実行。`gofmt` フォーマットチェック → `go test ./...` → `go build ./...`
+- **Deploy** (`deploy.yml`): `v*` タグのプッシュで起動。バイナリビルド → GitHub Releases にドラフトリリース作成（`gh release create`）
+
+リリースは `v*` タグをプッシュするだけで自動的にドラフト作成される。
+
 ## Key Technical Decisions
 
 - **標準ライブラリ優先**: フレームワークを使わずGoの `net/http/httputil.ReverseProxy` をそのまま利用
