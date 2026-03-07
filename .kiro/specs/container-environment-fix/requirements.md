@@ -41,6 +41,8 @@ foobarコンテナ内からサービスを登録するため`http://localgate.te
 3. The localgate shall 設定されたホスト名をHostヘッダの比較に用い、大文字・小文字を区別しない。
 4. The localgate shall ポート番号付きのHostヘッダ（例: `localgate.test:9000`）でも自己ホスト名と正しく照合できる。
 
+REVIEW: ホスト側からはlocalhost:9000でアクセスするので、上手く動かないように思う。
+
 ### Requirement 3: コンテナ環境での動作互換性
 
 **Objective:** インフラ担当者として、Docker等のコンテナ環境でlocalgateをデプロイした際に管理APIとプロキシが正常に動作することを期待する。そうすることで、コンテナを使ったローカル開発ワークフローを阻害しない。
