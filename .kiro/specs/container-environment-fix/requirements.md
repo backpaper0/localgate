@@ -33,15 +33,14 @@ foobarコンテナ内からサービスを登録するため`http://localgate.te
 
 ### Requirement 2: 自己ホスト名の設定
 
-**Objective:** サービス管理者として、localgate起動時に自身のホスト名を設定できることを期待する。そうすることで、異なるコンテナ・デプロイ環境に対応できる。
+**Objective:** サービス管理者として、localgate起動時に自身のホスト名を追加設定できることを期待する。そうすることで、`localhost`経由のホストアクセスとコンテナ内からのホスト名アクセスの両方を維持できる。
 
 #### 受け入れ基準
-1. When `--hostname`（または等価の設定）フラグを指定してlocalgate startを実行したとき、the localgate shall 指定されたホスト名を自己ホスト名として使用する。
-2. If `--hostname`フラグが指定されていない場合、the localgate shall デフォルト値として`localhost`を使用する（現状の動作を維持する）。
-3. The localgate shall 設定されたホスト名をHostヘッダの比較に用い、大文字・小文字を区別しない。
-4. The localgate shall ポート番号付きのHostヘッダ（例: `localgate.test:9000`）でも自己ホスト名と正しく照合できる。
-
-REVIEW: ホスト側からはlocalhost:9000でアクセスするので、上手く動かないように思う。
+1. The localgate shall `localhost`（ポートなし・ポート付き問わず）を常に管理APIホスト名として扱う（設定に関わらず不変）。
+2. When `--hostname`フラグを指定してlocalgate startを実行したとき、the localgate shall 指定されたホスト名を`localhost`に加える追加の管理APIホスト名として登録する。
+3. If `--hostname`フラグが指定されていない場合、the localgate shall `localhost`のみを管理APIホスト名として扱い、現状の動作を維持する。
+4. The localgate shall 管理APIホスト名の比較を大文字・小文字を区別せずに行う。
+5. The localgate shall ポート番号付きのHostヘッダ（例: `localgate.test:9000`）でも、ポートを除いたホスト名部分で照合できる。
 
 ### Requirement 3: コンテナ環境での動作互換性
 
