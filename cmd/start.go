@@ -13,6 +13,7 @@ import (
 )
 
 var port int
+var hostname string
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -23,6 +24,7 @@ var startCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().IntVar(&port, "port", 9000, "待ち受けポート番号 (1-65535)")
+	startCmd.Flags().StringVar(&hostname, "hostname", "", "追加の自己ホスト名（管理APIとして扱うホスト名）")
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
@@ -31,7 +33,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	}
 
 	reg := registry.NewServiceRegistry()
-	srv := server.NewProxyServer(server.ServerConfig{Port: port}, reg)
+	srv := server.NewProxyServer(server.ServerConfig{Port: port, Hostname: hostname}, reg)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

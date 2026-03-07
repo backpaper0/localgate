@@ -222,3 +222,106 @@ func TestManagementAPIPostMissingFields(t *testing.T) {
 		t.Errorf("expected 400, got %d", resp.StatusCode)
 	}
 }
+
+// --- タスク 3.2: コンテナ環境を想定した統合テスト ---
+
+func TestContainerEnv_LocalgatetestRoutesToManagementAPI_POST(t *testing.T) {
+	ts, _ := newTestServerWithHostname("localgate.test")
+	defer ts.Close()
+
+	body := `{"name":"svc","target":"localhost:3001"}`
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/services", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Host = "localgate.test:9000"
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("POST failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected 201, got %d", resp.StatusCode)
+	}
+}
+
+func TestContainerEnv_LocalgatetestRoutesToManagementAPI_GET(t *testing.T) {
+	ts, _ := newTestServerWithHostname("localgate.test")
+	defer ts.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/services", nil)
+	req.Host = "localgate.test:9000"
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestContainerEnv_SubdomainOfLocalgateProxied(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	ts, reg := newTestServerWithHostname("localgate.test")
+	defer ts.Close()
+
+	backendAddr := strings.TrimPrefix(backend.URL, "http://")
+	reg.Register("foo", backendAddr)
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
+	req.Host = "foo.localgate.test:9000"
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 (proxied), got %d", resp.StatusCode)
+	}
+}
+
+func TestContainerEnv_LocalhostStillRoutesToManagementAPI(t *testing.T) {
+	ts, _ := newTestServerWithHostname("localgate.test")
+	defer ts.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/services", nil)
+	req.Host = "localhost:9000"
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestContainerEnv_WithoutHostnameFlagLocalgateTestIsNotManagementAPI(t *testing.T) {
+	ts, _ := newTestServerWithHostname("")
+	defer ts.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/services", nil)
+	req.Host = "localgate.test:9000"
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	// --hostname 未指定時は localgate.test は管理APIへルーティングされない
+	if resp.StatusCode == http.StatusOK {
+		t.Errorf("without --hostname, localgate.test should not route to management API")
+	}
+}
