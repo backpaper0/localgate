@@ -9,7 +9,18 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 ### CLIコマンド
 **Location**: `cmd/`
 **Purpose**: cobraコマンド定義。各ファイルが1コマンドに対応。
-**Example**: `cmd/start.go` → `localgate start` サブコマンド
+
+| ファイル | コマンド | 役割 |
+|---|---|---|
+| `cmd/start.go` | `localgate start` | サーバー起動 |
+| `cmd/register.go` | `localgate register <name> <target\|port>` | サービス登録 |
+| `cmd/unregister.go` | `localgate unregister <name>` | サービス解除 |
+| `cmd/list.go` | `localgate list` | 登録済みサービス一覧 |
+| `cmd/client.go` | （共有） | クライアントコマンド共通の型・ユーティリティ |
+
+**クライアントコマンドの共通パターン**:
+- `--server` フラグ → `$LOCALGATE_SERVER` 環境変数 → `http://localhost:9000` の優先順位でサーバーURLを解決
+- `resolveServerURL()` / 共有型（`apiError` 等）は `cmd/client.go` に集約
 
 ### 内部パッケージ
 **Location**: `internal/`

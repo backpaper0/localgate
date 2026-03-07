@@ -33,9 +33,12 @@
 
 ### Common Commands
 ```bash
-# Build: go build -o localgate .
-# Test:  go test ./...
-# Run:   go run . start
+# Build:      go build -o localgate .
+# Test:       go test ./...
+# Start:      go run . start
+# Register:   go run . register <name> <target|port>
+# Unregister: go run . unregister <name>
+# List:       go run . list
 ```
 
 ## CI/CD
