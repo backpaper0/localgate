@@ -1,6 +1,7 @@
 package registry_test
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -11,7 +12,7 @@ import (
 func TestRegisterAndLookup(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	if err := reg.Register("foo", "localhost:3000"); err != nil {
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
 
@@ -27,8 +28,8 @@ func TestRegisterAndLookup(t *testing.T) {
 func TestRegisterOverwrite(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000")
-	reg.Register("foo", "localhost:4000")
+	reg.Register("foo", "localhost:3000", false)
+	reg.Register("foo", "localhost:4000", true)
 
 	target, found := reg.Lookup("foo")
 	if !found {
@@ -42,7 +43,7 @@ func TestRegisterOverwrite(t *testing.T) {
 func TestDeregister(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000")
+	reg.Register("foo", "localhost:3000", false)
 	if err := reg.Deregister("foo"); err != nil {
 		t.Fatalf("Deregister failed: %v", err)
 	}
@@ -65,7 +66,7 @@ func TestDeregisterNotFound(t *testing.T) {
 func TestRegisterEmptyName(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	err := reg.Register("", "localhost:3000")
+	err := reg.Register("", "localhost:3000", false)
 	if err == nil {
 		t.Fatal("expected error for empty name")
 	}
@@ -74,9 +75,41 @@ func TestRegisterEmptyName(t *testing.T) {
 func TestRegisterEmptyTarget(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	err := reg.Register("foo", "")
+	err := reg.Register("foo", "", false)
 	if err == nil {
 		t.Fatal("expected error for empty target")
+	}
+}
+
+func TestRegister_AlreadyExists(t *testing.T) {
+	reg := registry.NewServiceRegistry()
+
+	reg.Register("foo", "localhost:3000", false)
+	err := reg.Register("foo", "localhost:4000", false)
+	if err == nil {
+		t.Fatal("expected ErrAlreadyExists, got nil")
+	}
+	if !errors.Is(err, registry.ErrAlreadyExists) {
+		t.Errorf("expected ErrAlreadyExists, got: %v", err)
+	}
+	// 元のターゲットが変わっていないことを確認
+	target, _ := reg.Lookup("foo")
+	if target != "localhost:3000" {
+		t.Errorf("expected original target 'localhost:3000', got '%s'", target)
+	}
+}
+
+func TestRegister_ForceOverwrite(t *testing.T) {
+	reg := registry.NewServiceRegistry()
+
+	reg.Register("foo", "localhost:3000", false)
+	err := reg.Register("foo", "localhost:4000", true)
+	if err != nil {
+		t.Fatalf("expected no error with force=true, got: %v", err)
+	}
+	target, _ := reg.Lookup("foo")
+	if target != "localhost:4000" {
+		t.Errorf("expected updated target 'localhost:4000', got '%s'", target)
 	}
 }
 
@@ -92,8 +125,8 @@ func TestListEmpty(t *testing.T) {
 func TestList(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000")
-	reg.Register("bar", "localhost:4000")
+	reg.Register("foo", "localhost:3000", false)
+	reg.Register("bar", "localhost:4000", false)
 
 	entries := reg.List()
 	if len(entries) != 2 {
@@ -119,7 +152,7 @@ func TestConcurrentAccess(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			name := fmt.Sprintf("service%d", i)
-			reg.Register(name, "localhost:3000")
+			reg.Register(name, "localhost:3000", false)
 		}(i)
 		go func(i int) {
 			defer wg.Done()

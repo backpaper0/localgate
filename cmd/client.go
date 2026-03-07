@@ -23,7 +23,8 @@ type listServicesResponse struct {
 
 // apiError はエラーレスポンスのボディ
 type apiError struct {
-	Error string `json:"error"`
+	Error          string `json:"error"`
+	ExistingTarget string `json:"existing_target,omitempty"`
 }
 
 // resolveServerURL はサーバーURLを優先順位に従って解決する。

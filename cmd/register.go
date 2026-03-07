@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 func newRegisterCmd() *cobra.Command {
 	var serverFlag string
+	var forceFlag bool
 
 	cmd := &cobra.Command{
 		Use:   "register <name> <target|port>",
@@ -31,13 +34,7 @@ func newRegisterCmd() *cobra.Command {
 			}
 
 			serverURL := resolveServerURL(serverFlag)
-			reqBody := registerServiceRequest{Name: args[0], Target: target}
-			data, err := json.Marshal(reqBody)
-			if err != nil {
-				return fmt.Errorf("リクエストの作成に失敗しました: %v", err)
-			}
-
-			resp, err := http.Post(serverURL+"/services", "application/json", bytes.NewReader(data))
+			resp, err := sendRegisterRequest(serverURL, args[0], target, forceFlag)
 			if err != nil {
 				return fmt.Errorf("接続エラー: %v", err)
 			}
@@ -52,12 +49,56 @@ func newRegisterCmd() *cobra.Command {
 			if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil || apiErr.Error == "" {
 				return fmt.Errorf("エラー (HTTP %d)", resp.StatusCode)
 			}
+
+			if resp.StatusCode == http.StatusConflict {
+				fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' は既に '%s' として登録されています。上書きしますか？ [y/N]: ", args[0], apiErr.ExistingTarget)
+				scanner := bufio.NewScanner(cmd.InOrStdin())
+				scanner.Scan()
+				answer := strings.TrimSpace(scanner.Text())
+				if answer != "y" && answer != "Y" {
+					fmt.Fprintf(cmd.OutOrStdout(), "キャンセルしました\n")
+					return nil
+				}
+				resp2, err := sendRegisterRequest(serverURL, args[0], target, true)
+				if err != nil {
+					return fmt.Errorf("接続エラー: %v", err)
+				}
+				defer resp2.Body.Close()
+				if resp2.StatusCode == http.StatusCreated {
+					fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を登録しました\n", args[0])
+					return nil
+				}
+				var apiErr2 apiError
+				if err := json.NewDecoder(resp2.Body).Decode(&apiErr2); err != nil || apiErr2.Error == "" {
+					return fmt.Errorf("エラー (HTTP %d)", resp2.StatusCode)
+				}
+				return fmt.Errorf("%s", apiErr2.Error)
+			}
+
 			return fmt.Errorf("%s", apiErr.Error)
 		},
 	}
 
 	cmd.Flags().StringVar(&serverFlag, "server", "", "サーバーURL (デフォルト: $LOCALGATE_SERVER または http://localhost:9000)")
+	cmd.Flags().BoolVarP(&forceFlag, "force", "f", false, "確認なしで上書き登録する")
 	return cmd
+}
+
+func sendRegisterRequest(serverURL, name, target string, force bool) (*http.Response, error) {
+	reqBody := registerServiceRequest{Name: name, Target: target}
+	data, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("リクエストの作成に失敗しました: %v", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, serverURL+"/services", bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if force {
+		req.Header.Set("X-Force-Overwrite", "true")
+	}
+	return http.DefaultClient.Do(req)
 }
 
 func isPortOnly(s string) bool {

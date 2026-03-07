@@ -87,6 +87,93 @@ func TestRegisterCmd_MissingArgs(t *testing.T) {
 	}
 }
 
+func TestRegisterCmd_ConflictWithConfirmYes(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			// 1回目: 409 Conflict を返す
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
+			return
+		}
+		// 2回目: X-Force-Overwrite ヘッダーを確認して 201 Created を返す
+		if r.Header.Get("X-Force-Overwrite") != "true" {
+			t.Errorf("expected X-Force-Overwrite: true header on retry")
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
+	}))
+	defer srv.Close()
+
+	cmd := newRegisterCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetIn(strings.NewReader("y\n"))
+	cmd.SetArgs([]string{"--server", srv.URL, "myapp", "localhost:4000"})
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if callCount != 2 {
+		t.Errorf("expected 2 HTTP calls, got %d", callCount)
+	}
+	if !strings.Contains(out.String(), "登録しました") {
+		t.Errorf("expected success message, got: %q", out.String())
+	}
+}
+
+func TestRegisterCmd_ConflictWithConfirmNo(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
+	}))
+	defer srv.Close()
+
+	cmd := newRegisterCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetIn(strings.NewReader("n\n"))
+	cmd.SetArgs([]string{"--server", srv.URL, "myapp", "localhost:4000"})
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if callCount != 1 {
+		t.Errorf("expected only 1 HTTP call, got %d", callCount)
+	}
+	if !strings.Contains(out.String(), "キャンセル") {
+		t.Errorf("expected cancel message, got: %q", out.String())
+	}
+}
+
+func TestRegisterCmd_ConflictWithForceFlag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Force-Overwrite") != "true" {
+			t.Errorf("expected X-Force-Overwrite: true header with --force flag")
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
+	}))
+	defer srv.Close()
+
+	cmd := newRegisterCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--server", srv.URL, "--force", "myapp", "localhost:4000"})
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "登録しました") {
+		t.Errorf("expected success message, got: %q", out.String())
+	}
+}
+
 func TestRegisterCmd_PortOnly(t *testing.T) {
 	hostname, err := os.Hostname()
 	if err != nil {
