@@ -83,6 +83,18 @@ localgate register foo localhost:3000
 localgate register foo 3000
 ```
 
+同名サービスが既に登録されている場合は確認プロンプトが表示される:
+
+```
+サービス 'foo' は既に 'localhost:3000' として登録されています。上書きしますか？ [y/N]:
+```
+
+確認をスキップして強制上書きする場合は `--force` / `-f` フラグを使う:
+
+```bash
+localgate register --force foo localhost:4000
+```
+
 ### サービス解除
 
 ```bash
@@ -114,6 +126,22 @@ POST /services
 Content-Type: application/json
 
 {"name": "foo", "target": "localhost:3000"}
+```
+
+同名サービスが既に存在する場合は 409 Conflict が返る:
+
+```json
+{"error": "service already exists", "existing_target": "localhost:3000"}
+```
+
+`X-Force-Overwrite: true` ヘッダーを付与すると確認なしで上書きできる:
+
+```
+POST /services
+Content-Type: application/json
+X-Force-Overwrite: true
+
+{"name": "foo", "target": "localhost:4000"}
 ```
 
 ### サービス削除
