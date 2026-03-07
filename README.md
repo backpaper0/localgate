@@ -17,7 +17,7 @@ Hostヘッダのサブドメイン部分（`foo`、`bar` など）をキーに�
 ## インストール
 
 ```bash
-go install localgate@latest
+go install github.com/urgm/localgate@latest
 ```
 
 またはソースからビルド:
@@ -79,10 +79,12 @@ GET /services
 レスポンス例:
 
 ```json
-[
-  {"name": "foo", "target": "localhost:3000"},
-  {"name": "bar", "target": "localhost:8000"}
-]
+{
+  "services": [
+    {"name": "foo", "target": "localhost:3000"},
+    {"name": "bar", "target": "localhost:8000"}
+  ]
+}
 ```
 
 ## ユースケース
