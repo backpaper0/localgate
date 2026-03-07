@@ -68,7 +68,7 @@ func TestRegisterServiceInvalidJSON(t *testing.T) {
 
 func TestDeregisterService(t *testing.T) {
 	api, reg := newAPI()
-	reg.Register("foo", "localhost:3000")
+	reg.Register("foo", "localhost:3000", false)
 
 	r := httptest.NewRequest(http.MethodDelete, "/services/foo", nil)
 	w := httptest.NewRecorder()
@@ -100,8 +100,8 @@ func TestDeregisterServiceNotFound(t *testing.T) {
 
 func TestListServices(t *testing.T) {
 	api, reg := newAPI()
-	reg.Register("foo", "localhost:3000")
-	reg.Register("bar", "localhost:4000")
+	reg.Register("foo", "localhost:3000", false)
+	reg.Register("bar", "localhost:4000", false)
 
 	r := httptest.NewRequest(http.MethodGet, "/services", nil)
 	w := httptest.NewRecorder()

@@ -31,7 +31,7 @@ func TestProxyForwardsToRegisteredBackend(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr)
+	reg.Register("foo", backendAddr, false)
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/path", nil)
 	req.Host = "foo.localhost"
@@ -57,7 +57,7 @@ func TestProxyReturns404AfterDeregister(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr)
+	reg.Register("foo", backendAddr, false)
 	reg.Deregister("foo")
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
@@ -96,7 +96,7 @@ func TestProxyReturns502WhenBackendDown(t *testing.T) {
 	ts, reg := newTestServer()
 	defer ts.Close()
 
-	reg.Register("foo", "localhost:19998")
+	reg.Register("foo", "localhost:19998", false)
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
 	req.Host = "foo.localhost"
@@ -159,7 +159,7 @@ func TestManagementAPIDeleteAndList(t *testing.T) {
 	ts, reg := newTestServer()
 	defer ts.Close()
 
-	reg.Register("foo", "localhost:3000")
+	reg.Register("foo", "localhost:3000", false)
 
 	// DELETE /services/foo
 	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/services/foo", nil)
@@ -273,7 +273,7 @@ func TestContainerEnv_SubdomainOfLocalgateProxied(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr)
+	reg.Register("foo", backendAddr, false)
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
 	req.Host = "foo.localgate.test:9000"

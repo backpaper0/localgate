@@ -49,7 +49,18 @@ func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name and target are required")
 		return
 	}
-	if err := a.registry.Register(req.Name, req.Target); err != nil {
+	force := r.Header.Get("X-Force-Overwrite") == "true"
+	if err := a.registry.Register(req.Name, req.Target, force); err != nil {
+		if errors.Is(err, registry.ErrAlreadyExists) {
+			existingTarget, _ := a.registry.Lookup(req.Name)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":           "service already exists",
+				"existing_target": existingTarget,
+			})
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}

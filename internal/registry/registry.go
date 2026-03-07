@@ -14,9 +14,12 @@ type ServiceEntry struct {
 // ErrNotFound は未登録サービスへの操作時に返されるエラー
 var ErrNotFound = errors.New("service not found")
 
+// ErrAlreadyExists は同名サービスが既に存在する場合に返されるエラー
+var ErrAlreadyExists = errors.New("service already exists")
+
 // ServiceRegistry はサービスのルーティングテーブルを管理するインターフェース
 type ServiceRegistry interface {
-	Register(name, target string) error
+	Register(name, target string, force bool) error
 	Deregister(name string) error
 	Lookup(name string) (target string, found bool)
 	List() []ServiceEntry
@@ -34,12 +37,15 @@ func NewServiceRegistry() ServiceRegistry {
 	}
 }
 
-func (r *inMemoryRegistry) Register(name, target string) error {
+func (r *inMemoryRegistry) Register(name, target string, force bool) error {
 	if name == "" || target == "" {
 		return errors.New("name and target are required")
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, exists := r.services[name]; exists && !force {
+		return ErrAlreadyExists
+	}
 	r.services[name] = target
 	return nil
 }

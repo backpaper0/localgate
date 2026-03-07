@@ -63,6 +63,58 @@ localgate start --hostname localgate.test
 127.0.0.1  bar.localhost
 ```
 
+## CLIによるサービス管理
+
+サーバー起動後、CLIサブコマンドでサービスを管理できる。
+
+### サービス登録
+
+```bash
+localgate register <name> <target>
+```
+
+`target` にはホスト名とポートの組み合わせ（`localhost:3000`）またはポート番号のみ（`3000`）を指定できる。ポート番号のみの場合は自動でマシンのホスト名が補完される。
+
+```bash
+# ホスト:ポートで登録
+localgate register foo localhost:3000
+
+# ポートのみで登録（ホスト名を自動補完）
+localgate register foo 3000
+```
+
+同名サービスが既に登録されている場合は確認プロンプトが表示される:
+
+```
+サービス 'foo' は既に 'localhost:3000' として登録されています。上書きしますか？ [y/N]:
+```
+
+確認をスキップして強制上書きする場合は `--force` / `-f` フラグを使う:
+
+```bash
+localgate register --force foo localhost:4000
+```
+
+### サービス解除
+
+```bash
+localgate unregister <name>
+```
+
+### サービス一覧
+
+```bash
+localgate list
+```
+
+### サーバーURLの指定
+
+各コマンドは `--server` フラグまたは環境変数 `$LOCALGATE_SERVER` でサーバーURLを指定できる。省略時は `http://localhost:9000` が使われる。
+
+```bash
+localgate register --server http://localgate.test:9000 foo localhost:3000
+```
+
 ## 管理API
 
 サーバ起動後、サブドメインを含まないホスト（例: `localhost:9000`）へのリクエストが管理APIとして処理される。
@@ -74,6 +126,22 @@ POST /services
 Content-Type: application/json
 
 {"name": "foo", "target": "localhost:3000"}
+```
+
+同名サービスが既に存在する場合は 409 Conflict が返る:
+
+```json
+{"error": "service already exists", "existing_target": "localhost:3000"}
+```
+
+`X-Force-Overwrite: true` ヘッダーを付与すると確認なしで上書きできる:
+
+```
+POST /services
+Content-Type: application/json
+X-Force-Overwrite: true
+
+{"name": "foo", "target": "localhost:4000"}
 ```
 
 ### サービス削除
