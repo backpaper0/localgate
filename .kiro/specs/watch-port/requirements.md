@@ -10,7 +10,7 @@
 
 ## はじめに
 
-`watch` サブコマンドは、ホストOS上のLISTENポートを継続的に監視し、新たにLISTENが開始されたポートを localgate サーバへ自動登録、LISTENが終了したポートを自動解除する機能を提供する。これにより、開発者はサービスの起動・停止を手動で管理することなく、localgate を通じて自動的にサービスにアクセスできるようになる。
+`watch` サブコマンドは、Linux上のLISTENポートを継続的に監視し、新たにLISTENが開始されたポートを localgate サーバへ自動登録、LISTENが終了したポートを自動解除する機能を提供する。主なユースケースはDockerコンテナ（Debian）内でのバックグラウンド実行であり、**対応プラットフォームはLinuxのみ**とする（macOS・Windowsはサポート対象外）。これにより、開発者はサービスの起動・停止を手動で管理することなく、localgate を通じて自動的にサービスにアクセスできるようになる。
 
 ## Requirements
 
@@ -34,7 +34,7 @@
 
 #### Acceptance Criteria
 
-1. While 監視中, the localgate shall 設定されたポーリング間隔ごとにホスト上のTCPv4/v6 LISTENポートの一覧を取得する。
+1. While 監視中, the localgate shall 設定されたポーリング間隔ごとに `/proc/net/tcp` および `/proc/net/tcp6` を読み取り、TCPv4/v6 LISTENポートの一覧を取得する。
 2. The localgate shall デフォルトのポーリング間隔として1秒を使用する。
 3. The localgate shall `--interval` フラグで秒単位のポーリング間隔を上書きできるようにする。
 4. If ポート一覧の取得に失敗した場合, the localgate shall エラーをログに記録し、次のポーリングサイクルまで処理を継続する。
