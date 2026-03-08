@@ -14,6 +14,7 @@ import (
 
 var port int
 var hostname string
+var portalRefresh int
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -25,15 +26,19 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().IntVar(&port, "port", 9000, "待ち受けポート番号 (1-65535)")
 	startCmd.Flags().StringVar(&hostname, "hostname", "", "追加の自己ホスト名（管理APIとして扱うホスト名）")
+	startCmd.Flags().IntVar(&portalRefresh, "portal-refresh", 2, "ポータル画面のサービス一覧更新間隔（秒）")
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
 	if port < 1 || port > 65535 {
 		return fmt.Errorf("ポート番号は1〜65535の範囲で指定してください: %d", port)
 	}
+	if portalRefresh < 1 {
+		return fmt.Errorf("--portal-refresh は1以上の整数で指定してください: %d", portalRefresh)
+	}
 
 	reg := registry.NewServiceRegistry()
-	srv := server.NewProxyServer(server.ServerConfig{Port: port, Hostname: hostname}, reg)
+	srv := server.NewProxyServer(server.ServerConfig{Port: port, Hostname: hostname, PortalRefreshInterval: portalRefresh}, reg)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

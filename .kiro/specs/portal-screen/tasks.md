@@ -2,14 +2,14 @@
 
 ## Task 1. ポータルHTTPハンドラの実装
 
-- [ ] 1.1 ポータルパッケージを作成し、HTMLテンプレートをポーリング間隔と共に配信するハンドラを実装する
+- [x] 1.1 ポータルパッケージを作成し、HTMLテンプレートをポーリング間隔と共に配信するハンドラを実装する
   - `internal/portal` パッケージを新設し、HTMLテンプレートをバイナリに静的埋め込みするハンドラを実装する
   - `html/template` を使い、ポーリング間隔（ミリ秒）をテンプレート変数 `RefreshIntervalMs` として注入する
   - `GET /` に対して `text/html; charset=utf-8` でステータス200を返す
   - テンプレートのパースは起動時に行い、不正なテンプレートはビルド時にエラーとして検出されるようにする
   - _Requirements: 1.1, 1.2_
 
-- [ ] 1.2 ポータルHTMLを実装する（サービス一覧・ポーリング・解除操作・モダンデザイン）
+- [x] 1.2 ポータルHTMLを実装する（サービス一覧・ポーリング・解除操作・モダンデザイン）
   - Tailwind CSS Play CDN をヘッダーで読み込み、オフライン時の基本レイアウト用インラインスタイルをフォールバックとして含める
   - localgate のタイトル／アイコンをヘッダーに配置する
   - ページ読み込み時に `GET /services` を呼び出し、登録済みサービスをカード形式で一覧表示する
@@ -26,13 +26,13 @@
 
 ## Task 2. CLIフラグとサーバー設定の拡張
 
-- [ ] 2.1 (P) サーバー設定にポーリング間隔フィールドを追加し、管理APIへ渡す
+- [x] 2.1 (P) サーバー設定にポーリング間隔フィールドを追加し、管理APIへ渡す
   - `server.ServerConfig` に `PortalRefreshInterval int`（単位: 秒）フィールドを追加する
   - `server.NewProxyServer` が `management.NewAPI` を呼び出す際にこの値を渡すよう修正する
   - Task 1 と並列実装可能（変更ファイルが独立している）
   - _Requirements: 3.1_
 
-- [ ] 2.2 `start` サブコマンドに `--portal-refresh` フラグを追加する
+- [x] 2.2 `start` サブコマンドに `--portal-refresh` フラグを追加する
   - `cmd/start.go` に `--portal-refresh` フラグ（型 `int`、デフォルト `2`、単位: 秒）を追加する
   - 値が1未満の場合は起動時エラーを返す（既存の `--port` バリデーションと同パターン）
   - `server.ServerConfig.PortalRefreshInterval` に値を設定する（2.1 完了後に実装）
@@ -42,7 +42,7 @@
 
 ## Task 3. 管理APIへの統合
 
-- [ ] 3.1 管理APIのコンストラクタを変更し、ポータルハンドラを `GET /` に登録する
+- [x] 3.1 管理APIのコンストラクタを変更し、ポータルハンドラを `GET /` に登録する
   - `management.NewAPI` のシグネチャに `refreshIntervalSec int` 引数を追加する
   - `portal.NewHandler(refreshIntervalSec)` を内部でインスタンス化し、`mux.HandleFunc("GET /", ...)` で登録する
   - 既存の `POST /services`・`DELETE /services/{name}`・`GET /services` ハンドラへの影響がないことを確認する
@@ -53,14 +53,14 @@
 
 ## Task 4. テストの実装
 
-- [ ] 4.1 (P) ポータルハンドラのユニットテストを実装する
+- [x] 4.1 (P) ポータルハンドラのユニットテストを実装する
   - `GET /` に対してステータス200・`Content-Type: text/html` が返ることを検証する
   - レスポンスボディが空でないこと（HTMLコンテンツが埋め込まれていること）を確認する
   - `RefreshIntervalMs` の値がレスポンスボディに含まれることを確認する
   - 4.2 と並列実装可能（別パッケージ）
   - _Requirements: 1.1, 1.2_
 
-- [ ] 4.2 (P) 管理APIの統合テストを更新する
+- [x] 4.2 (P) 管理APIの統合テストを更新する
   - `management.NewAPI` が `refreshIntervalSec` 引数を受け取れることを検証する
   - `GET /` がHTMLを返し、`GET /services` が引き続きJSONを返すことを同一テストスイートで確認する
   - `POST /services`・`DELETE /services/{name}` の既存テストが変更後も通過することを確認する

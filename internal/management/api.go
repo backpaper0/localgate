@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"localgate/internal/portal"
 	"localgate/internal/registry"
 )
 
@@ -24,10 +25,12 @@ type API struct {
 	mux      *http.ServeMux
 }
 
-// NewAPI は新しい管理APIハンドラを返す
-func NewAPI(reg registry.ServiceRegistry) *API {
+// NewAPI は新しい管理APIハンドラを返す。
+// refreshIntervalSec はポータル画面のポーリング間隔（秒）。
+func NewAPI(reg registry.ServiceRegistry, refreshIntervalSec int) *API {
 	api := &API{registry: reg}
 	mux := http.NewServeMux()
+	mux.Handle("GET /", portal.NewHandler(refreshIntervalSec))
 	mux.HandleFunc("POST /services", api.handleRegister)
 	mux.HandleFunc("DELETE /services/{name}", api.handleDeregister)
 	mux.HandleFunc("GET /services", api.handleList)

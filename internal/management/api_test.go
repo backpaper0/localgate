@@ -13,8 +13,49 @@ import (
 
 func newAPI() (*management.API, registry.ServiceRegistry) {
 	reg := registry.NewServiceRegistry()
-	api := management.NewAPI(reg)
+	api := management.NewAPI(reg, 2)
 	return api, reg
+}
+
+func TestPortalReturnsHTML(t *testing.T) {
+	api, _ := newAPI()
+
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+
+	api.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	ct := w.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "text/html") {
+		t.Errorf("expected Content-Type text/html, got %q", ct)
+	}
+
+	if w.Body.Len() == 0 {
+		t.Error("expected non-empty HTML body")
+	}
+}
+
+func TestListServicesStillReturnsJSON(t *testing.T) {
+	api, reg := newAPI()
+	reg.Register("svc", "localhost:8080", false)
+
+	r := httptest.NewRequest(http.MethodGet, "/services", nil)
+	w := httptest.NewRecorder()
+
+	api.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	ct := w.Header().Get("Content-Type")
+	if !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("expected Content-Type application/json, got %q", ct)
+	}
 }
 
 func TestRegisterService(t *testing.T) {
