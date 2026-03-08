@@ -12,8 +12,7 @@
 
 - `GET http://localhost:9000/` でHTMLポータルを返す（要件 1）
 - 登録済みサービスの名前と接続先を一覧表示する（要件 2）
-- 5秒ポーリングでサービス一覧をリアルタイム更新する（要件 3）
-REVIEW: デフォルトは2秒間隔とし、`start`サブコマンドのパラメーターで任意の秒数を指定できるようにしてほしい。
+- デフォルト2秒ポーリングでサービス一覧をリアルタイム更新する。`start --portal-refresh <秒数>` で変更可能（要件 3）
 - 各サービス行の解除ボタンで `DELETE /services/{name}` を呼び出す（要件 4）
 - Tailwind CSS CDNを活用したモダンでかわいいUI（要件 5）
 
@@ -93,7 +92,7 @@ sequenceDiagram
     M->>P: ServeHTTP GET /
     P-->>B: 200 text/html (埋め込みHTML)
 
-    loop 5秒ごと
+    loop RefreshInterval秒ごと（デフォルト2秒）
         B->>S: GET /services
         S->>M: ServeHTTP
         M->>R: List()
@@ -143,7 +142,7 @@ sequenceDiagram
 | 2.1 | サービス名・接続先の一覧表示 | portal.Handler (HTML+JS) | GET /services | ポーリング |
 | 2.2 | 空状態メッセージ | portal.Handler (HTML+JS) | — | — |
 | 2.3 | GET /services JSON | management.API | handleList | ポーリング |
-| 3.1 | 5秒ポーリング | portal.Handler (HTML+JS) | setInterval | ポーリング |
+| 3.1 | デフォルト2秒ポーリング（`--portal-refresh`で変更可能） | portal.Handler, cmd.start, server.ProxyServer, management.API | setInterval, ServerConfig, NewAPI, NewHandler | ポーリング |
 | 3.2 | DOMの差し替え更新 | portal.Handler (HTML+JS) | — | ポーリング |
 | 3.3 | エラー時の継続リトライ | portal.Handler (HTML+JS) | — | — |
 | 4.1 | 解除操作（confirm付き） | portal.Handler (HTML+JS) | DELETE /services/{name} | 解除フロー |
@@ -165,8 +164,10 @@ sequenceDiagram
 
 | Component | Layer | Intent | Req Coverage | Key Dependencies | Contracts |
 |-----------|-------|--------|--------------|------------------|-----------|
-| portal.Handler | UI配信 | `GET /` にHTMLを返す | 1.1, 1.2, 2.1, 2.2, 3.1–3.3, 4.1–4.4, 5.1–5.6 | `embed` (P0) | API |
+| portal.Handler | UI配信 | `GET /` にHTMLを返す（間隔をテンプレートで注入） | 1.1, 1.2, 2.1, 2.2, 3.1–3.3, 4.1–4.4, 5.1–5.6 | `embed`, `html/template` (P0) | API |
 | management.API (変更) | API | `GET /` を portal.Handler に委譲 | 1.3 | portal.Handler (P0) | API |
+| server.ServerConfig (変更) | 設定 | ポーリング間隔を保持しAPIへ伝搬 | 3.1 | — | — |
+| cmd.start (変更) | CLI | `--portal-refresh` フラグを受け取り ServerConfig に設定 | 3.1 | cobra (P0) | — |
 
 ---
 
@@ -180,7 +181,8 @@ sequenceDiagram
 | Requirements | 1.1, 1.2, 2.1, 2.2, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6 |
 
 **Responsibilities & Constraints**
-- `portal.html` を `//go:embed` でバイナリに埋め込み、`GET /` リクエストに対して `text/html; charset=utf-8` で返す
+- `portal.html` を `//go:embed` でバイナリに埋め込み、`html/template` でレンダリングして `text/html; charset=utf-8` で返す
+- ポーリング間隔（ミリ秒）をテンプレート変数 `{{.RefreshIntervalMs}}` で HTML 内 JS に注入する
 - HTML/JS/CSS の全レンダリングロジックはクライアントサイドに委譲（サーバはHTMLを返すだけ）
 - `portal.html` の JS が `GET /services` / `DELETE /services/{name}` を呼び出す
 
@@ -189,6 +191,27 @@ sequenceDiagram
 - External: Tailwind CSS Play CDN — スタイリング (P1、オフライン時はフォールバックスタイルが機能)
 
 **Contracts**: API [x]
+
+##### Service Interface
+
+```go
+type Handler struct {
+    tmpl              *template.Template
+    refreshIntervalMs int
+}
+
+func NewHandler(refreshIntervalSec int) *Handler
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request)
+
+// portal.html テンプレートに渡すデータ
+type portalData struct {
+    RefreshIntervalMs int // refreshIntervalSec * 1000
+}
+```
+
+- Preconditions: `refreshIntervalSec >= 1`
+- Postconditions: `text/html; charset=utf-8` のレスポンスを返す
+- Invariants: `portal.html` テンプレートは起動時にパースされる（不正時はパニック）
 
 ##### API Contract
 
@@ -204,8 +227,8 @@ sequenceDiagram
 | DELETE | /services/{name} | サービス解除 | 対象行をDOMから削除 | エラーメッセージを表示 |
 
 **Implementation Notes**
-- Integration: `management.NewAPI()` 内で `mux.HandleFunc("GET /", portal.NewHandler().ServeHTTP)` として登録する
-- Validation: `portal.html` は `//go:embed portal.html` でコンパイル時に埋め込むため、ファイル不在はビルドエラーとして検出される
+- Integration: `management.NewAPI(reg, refreshIntervalSec)` 内で `mux.HandleFunc("GET /", portal.NewHandler(refreshIntervalSec).ServeHTTP)` として登録する
+- Validation: `portal.html` は `//go:embed portal.html` でコンパイル時に埋め込む。テンプレートパース失敗は `NewHandler` 内で `template.Must` によりパニックとして即検出される
 - Risks: Tailwind Play CDN はオフライン時に読み込まれない。HTML内に最小限のインラインスタイル（基本レイアウト用）をフォールバックとして含める
 
 ---
@@ -220,15 +243,74 @@ sequenceDiagram
 | Requirements | 1.3 |
 
 **Responsibilities & Constraints**
-- `NewAPI()` 関数内の mux 登録に `mux.HandleFunc("GET /", portalHandler.ServeHTTP)` を1行追加
+- `NewAPI(reg, refreshIntervalSec)` の引数に `refreshIntervalSec int` を追加し、`portal.NewHandler(refreshIntervalSec)` をインスタンス化して `GET /` に登録する
 - 既存の `POST /services`, `DELETE /services/{name}`, `GET /services` ハンドラへの影響なし
 
 **Dependencies**
 - Inbound: server.ProxyServer (P0)
 - Outbound: portal.Handler (P0), registry.ServiceRegistry (P0)
 
+##### Service Interface
+
+```go
+func NewAPI(reg registry.ServiceRegistry, refreshIntervalSec int) *API
+```
+
 **Implementation Notes**
-- `NewAPI(reg)` の引数変更は不要。`portal.NewHandler()` はレジストリ参照を持たない（データはクライアントJSがAPIを呼んで取得）
+- `portal.NewHandler()` はレジストリ参照を持たない（データはクライアントJSがAPIを呼んで取得）
+- 既存の `NewAPI(reg)` 呼び出し箇所（`internal/server/server.go`）の引数を `NewAPI(reg, config.PortalRefreshInterval)` に変更する
+
+---
+
+### CLIレイヤ（変更点）
+
+#### cmd.start（`--portal-refresh` フラグの追加）
+
+| Field | Detail |
+|-------|--------|
+| Intent | `start` サブコマンドに `--portal-refresh` フラグを追加し、ポーリング間隔を `ServerConfig` へ渡す |
+| Requirements | 3.1 |
+
+**Responsibilities & Constraints**
+- `--portal-refresh` フラグ（型 `int`、デフォルト `2`、単位: 秒）を `startCmd.Flags().IntVar()` で追加する
+- 1以上の整数のみ許容し、0以下の場合はエラーを返す
+- `server.ServerConfig{PortalRefreshInterval: portalRefresh}` に設定して `NewProxyServer` へ渡す
+
+##### Service Interface
+
+```go
+// cmd/start.go 追加フラグ
+var portalRefresh int
+startCmd.Flags().IntVar(&portalRefresh, "portal-refresh", 2, "ポータル画面のサービス一覧更新間隔（秒）")
+```
+
+**Implementation Notes**
+- Validation: `portalRefresh < 1` の場合 `fmt.Errorf` でエラーを返す（既存の `port` バリデーションと同パターン）
+
+---
+
+### 設定レイヤ（変更点）
+
+#### server.ServerConfig（`PortalRefreshInterval` フィールドの追加）
+
+| Field | Detail |
+|-------|--------|
+| Intent | ポーリング間隔を CLI から management.API まで伝搬する設定フィールド |
+| Requirements | 3.1 |
+
+**Responsibilities & Constraints**
+- `ServerConfig` 構造体に `PortalRefreshInterval int` フィールドを追加する
+- `NewProxyServer` が `management.NewAPI(reg, config.PortalRefreshInterval)` を呼び出す
+
+##### Service Interface
+
+```go
+type ServerConfig struct {
+    Port                  int
+    Hostname              string
+    PortalRefreshInterval int // ポーリング間隔（秒）、デフォルト 2
+}
+```
 
 ---
 
@@ -274,7 +356,7 @@ ServiceEntry
 
 | 種別 | 原因 | UI挙動 |
 |------|------|--------|
-| ポーリング失敗 (5xx/ネットワーク) | サーバ停止・一時的障害 | エラーバナーを表示、次の5秒後に自動リトライ |
+| ポーリング失敗 (5xx/ネットワーク) | サーバ停止・一時的障害 | エラーバナーを表示、次の RefreshInterval 秒後に自動リトライ |
 | 解除失敗 404 | 既に解除済み | エラーメッセージを表示（一覧はそのまま維持） |
 | 解除失敗 5xx | サーバ内部エラー | エラーメッセージを表示 |
 
@@ -300,7 +382,8 @@ ServiceEntry
 ### E2E/UI Tests（手動確認）
 
 - ブラウザで `http://localhost:9000` を開きポータルが表示されること
-- 5秒後にサービス一覧が自動更新されること（別ターミナルからregisterして確認）
+- デフォルト（2秒）後にサービス一覧が自動更新されること（別ターミナルからregisterして確認）
+- `localgate start --portal-refresh 10` で10秒間隔に変更されることを確認
 - 解除ボタンクリック → confirmダイアログ → OK → 一覧から消えること
 
 ---

@@ -44,7 +44,7 @@ localgate のポータル画面は、`http://localhost:9000`（サブドメイ�
 
 #### Acceptance Criteria
 
-1. While ポータル画面が開いている, the ポータル画面 shall 定期的（30秒以内の間隔）にサービス一覧を自動更新する
+1. While ポータル画面が開いている, the ポータル画面 shall デフォルト2秒間隔でサービス一覧を自動更新する。`localgate start --portal-refresh <秒数>` で任意の間隔（整数秒）に変更できる
 2. When サービスの一覧が更新される, the ポータル画面 shall ページ全体のリロードなしにサービス一覧のみを差し替える
 3. If サービス一覧の取得に失敗する, the ポータル画面 shall エラー状態を表示し、次の更新タイミングで再試行する
 

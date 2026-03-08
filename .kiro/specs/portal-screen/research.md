@@ -75,12 +75,13 @@
 - **Trade-offs**: パッケージが1つ増えるが、HTML・JS・スタイルを portal パッケージ内で完結させられる
 - **Follow-up**: `management_test.go` に `GET /` のレスポンスコード・Content-Type 確認テストを追加する
 
-### Decision: Polling 方式（5秒間隔）
+### Decision: Polling 方式（デフォルト2秒、`--portal-refresh`で変更可能）
 
-- **Context**: サーバ側変更コストを最小化しつつリアルタイム性を実現
-- **Selected Approach**: `setInterval(fetchServices, 5000)` で5秒ごとに `GET /services` を呼び出す
-- **Rationale**: ローカル開発ツールとして5秒の遅延は許容範囲。SSEへの変更は将来対応で十分。
-- **Trade-offs**: 常時ポーリングによる軽微なネットワーク負荷 vs 実装シンプルさ
+- **Context**: サーバ側変更コストを最小化しつつリアルタイム性を実現。デフォルト2秒・設定可能とのユーザー要求に対応
+- **Selected Approach**: `setInterval(fetchServices, {{.RefreshIntervalMs}})` でポーリング間隔をテンプレート変数で注入。`html/template` を使用して Go の値を JS 変数に安全に埋め込む
+- **Interval Chain**: `start --portal-refresh <sec>` → `ServerConfig.PortalRefreshInterval` → `management.NewAPI(reg, interval)` → `portal.NewHandler(interval)` → HTML テンプレート変数 `RefreshIntervalMs = interval * 1000`
+- **Rationale**: ローカル開発ツールとして2秒は即時性が高く、設定可能にすることで開発スタイルに合わせられる。SSEへの変更は将来対応で十分。
+- **Trade-offs**: 常時ポーリングによる軽微なネットワーク負荷 vs 実装シンプルさ。`html/template` 導入でポータルが純粋な静的ファイル配信でなくなるが、間隔値の注入は1変数のみ
 
 ## Risks & Mitigations
 
