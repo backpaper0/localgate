@@ -16,20 +16,26 @@ Hostヘッダのサブドメイン部分（`foo`、`bar` など）をキーに�
 
 ## インストール
 
-[GitHub Releases](https://github.com/urgm/localgate/releases) からビルド済みバイナリをダウンロードできる。
+[GitHub Releases](https://github.com/backpaper0/localgate/releases) からビルド済みバイナリをダウンロードできる。
 
 またはGoでインストール:
 
 ```bash
-go install github.com/urgm/localgate@latest
+go install github.com/backpaper0/localgate@latest
 ```
 
 またはソースからビルド:
 
 ```bash
-git clone https://github.com/urgm/localgate
+git clone https://github.com/backpaper0/localgate
 cd localgate
 go build -o localgate .
+```
+
+またはDockerで利用:
+
+```bash
+docker run -d -p 9000:9000 ghcr.io/backpaper0/localgate
 ```
 
 ## 使い方
@@ -107,6 +113,20 @@ localgate unregister <name>
 localgate list
 ```
 
+### ポートの自動監視
+
+```bash
+localgate watch
+```
+
+起動中のLISTENポートを定期的にスキャンし、新たに検出されたポートを自動登録、閉じられたポートを自動解除する。サービス名はホスト名とポート番号から自動生成される（例: `myhost-3000`）。
+
+ポーリング間隔（秒）を変更する場合:
+
+```bash
+localgate watch --interval 5
+```
+
 ### サーバーURLの指定
 
 各コマンドは `--server` フラグまたは環境変数 `$LOCALGATE_SERVER` でサーバーURLを指定できる。省略時は `http://localhost:9000` が使われる。
@@ -114,6 +134,10 @@ localgate list
 ```bash
 localgate register --server http://localgate.test:9000 foo localhost:3000
 ```
+
+## ポータル画面
+
+サーバ起動後、ブラウザで `http://localhost:9000` にアクセスすると、登録済みサービスの一覧をグラフィカルに確認できる管理ポータルが表示される。サービス一覧は定期的に自動更新される。
 
 ## 管理API
 
