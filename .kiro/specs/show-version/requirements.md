@@ -37,14 +37,11 @@ localgateのバージョンとコミットハッシュを出力する。
 
 1. The localgate CLI shall バージョン番号（例: `v1.2.3`）を表示する
 2. The localgate CLI shall ビルド時のGitコミットハッシュを表示する
-3. If バージョン番号がビルド時に埋め込まれていない, the localgate CLI shall `dev` というデフォルト値を表示する
-4. If コミットハッシュがビルド時に埋め込まれていない, the localgate CLI shall `unknown` というデフォルト値を表示する
-
-> **提案追加項目（採用任意）**:
-> - **ビルド日時**: いつコンパイルされたかを示す（例: `2026-03-08T00:00:00Z`）。バイナリの新旧判断に有用。
-> - **Goバージョン**: `runtime.Version()` で取得可能。サポートバージョン確認・デバッグに有用。
->
-> 上記2項目を追加する場合、Requirement 3 も参照のこと。
+3. The localgate CLI shall ビルド日時を表示する
+4. The localgate CLI shall ビルドに使用したGoのバージョンを表示する
+5. If バージョン番号がビルド時に埋め込まれていない, the localgate CLI shall `dev` というデフォルト値を表示する
+6. If コミットハッシュがビルド時に埋め込まれていない, the localgate CLI shall `unknown` というデフォルト値を表示する
+7. If ビルド日時がビルド時に埋め込まれていない, the localgate CLI shall `unknown` というデフォルト値を表示する
 
 ---
 
@@ -54,7 +51,7 @@ localgateのバージョンとコミットハッシュを出力する。
 
 #### Acceptance Criteria
 
-1. The localgate CLI shall `-ldflags` でバージョン番号・コミットハッシュを上書きできる変数を公開する
+1. The localgate CLI shall `-ldflags` でバージョン番号・コミットハッシュ・ビルド日時を上書きできる変数を公開する
 2. When `go build -ldflags "-X ..." -o localgate .` でビルドされる, the localgate CLI shall 指定した値をバージョン情報として表示する
 3. The localgate CLI shall CI/CDの `deploy.yml` ワークフローにおいて、Gitタグとコミットハッシュを自動的にビルドフラグとして渡すようにする
 
