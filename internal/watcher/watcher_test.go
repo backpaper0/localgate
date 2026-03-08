@@ -84,9 +84,9 @@ func TestExtractHostLabel(t *testing.T) {
 func TestWatcher_NewPort_Registers(t *testing.T) {
 	scanner := &mockScanner{
 		results: [][]int{
-			{},        // 初回スキャン（ベースライン）
-			{8080},    // 2回目: 新規ポート出現
-			{8080},    // 3回目以降
+			{},     // 初回スキャン（ベースライン）
+			{8080}, // 2回目: 新規ポート出現
+			{8080}, // 3回目以降
 		},
 	}
 	client := &mockClient{}
