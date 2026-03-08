@@ -9,8 +9,7 @@
 ### Goals
 
 - `localgate watch` コマンドで Linux 上のLISTENポートを継続的に監視する
-- 新規LISTENポートを `port-{n}` の名前で localgate に自動登録する
-REVIEW: サービス名は`{ホスト名のサブドメイン}-{port}`にしてほしい。例えばホスト名が`foobar.test`でポートが`8080`の場合、`foobar-8080`という名前にしてほしい。ホスト名が`hoge`でポートが`9999`の場合は`hoge-9999`。
+- 新規LISTENポートを `{ホスト名の先頭ラベル}-{port}` の名前で localgate に自動登録する（例: ホスト名 `foobar.test` + ポート `8080` → `foobar-8080`、ホスト名 `hoge` + ポート `9999` → `hoge-9999`）
 - LISTENが終了したポートのサービスを自動解除する
 - コマンド終了時（SIGINT/SIGTERM）に登録済みサービスをすべてクリーンアップする
 
@@ -37,7 +36,7 @@ REVIEW: サービス名は`{ホスト名のサブドメイン}-{port}`にして�
 | 3.1 | 新規ポートの自動登録 | Watcher, ManagementClient | `ManagementClient.Register` | ポーリングループ |
 | 3.2 | 登録成功時のログ | Watcher | — | ポーリングループ |
 | 3.3 | 登録失敗時の次サイクル再試行 | Watcher | — | ポーリングループ |
-| 3.4 | サービス名 `port-{n}` 形式 | Watcher | — | — |
+| 3.4 | サービス名 `{ホスト名ラベル}-{n}` 形式 | Watcher | — | — |
 | 3.5 | 管理済みポートセットの保持 | Watcher | State | — |
 | 4.1 | 消滅ポートの自動解除 | Watcher, ManagementClient | `ManagementClient.Deregister` | ポーリングループ |
 | 4.2 | 解除成功時のログ | Watcher | — | ポーリングループ |
@@ -132,7 +131,7 @@ sequenceDiagram
         else スキャン成功
             Watcher->>Watcher: diff(前回セット, 今回セット)
             loop 新規ポートごと
-                Watcher->>ManagementAPI: POST /services {name: port-N, target: localhost:N}
+                Watcher->>ManagementAPI: POST /services {name: label-N, target: hostname:N}
                 alt 成功
                     Watcher->>Watcher: 管理セットに追加、登録ログ
                 else 失敗
@@ -140,7 +139,7 @@ sequenceDiagram
                 end
             end
             loop 消滅ポートごと
-                Watcher->>ManagementAPI: DELETE /services/port-N
+                Watcher->>ManagementAPI: DELETE /services/label-N
                 alt 成功
                     Watcher->>Watcher: 管理セットから削除、解除ログ
                 else 失敗
@@ -229,9 +228,9 @@ sequenceDiagram
 
 **Responsibilities & Constraints**
 - `PortScanner.Scan()` を `interval` 間隔で呼び出し、前回セットとの差分を計算する
-- 新規ポート: `ManagementClient.Register("port-{n}", "localhost:{n}")` を呼び出す
-REVIEW: `localhost`ではなく`$(hostname)`にしてほしい。ユースケースはコンテナ内から同一ネットワークに所属している別コンテナ宛にサービス登録を行うため。
-- 消滅ポート: `ManagementClient.Deregister("port-{n}")` を呼び出す
+- 起動時に `os.Hostname()` でホスト名を取得し、先頭ラベル（`.` の前部分）を `hostLabel` として保持する
+- 新規ポート: `ManagementClient.Register("{hostLabel}-{n}", "{hostname}:{n}")` を呼び出す（同一ネットワーク内の別コンテナからアクセス可能なターゲット）
+- 消滅ポート: `ManagementClient.Deregister("{hostLabel}-{n}")` を呼び出す
 - 管理済みポートセット (`map[int]struct{}`) を内部状態として保持
 - `ctx.Done()` 検知時: 管理済みポートをすべて解除してから return する
 - 登録・解除の失敗はログ記録のみ行い、処理を継続する（Graceful Degradation）
@@ -247,13 +246,15 @@ REVIEW: `localhost`ではなく`$(hostname)`にしてほしい。ユースケー
 ```go
 // Watcher はポート監視と自動登録・解除を行う。
 type Watcher struct {
-    scanner  PortScanner
-    client   ManagementClient
-    interval time.Duration
-    managed  map[int]struct{} // このwatcherが登録したポートのセット
+    scanner   PortScanner
+    client    ManagementClient
+    interval  time.Duration
+    hostname  string          // os.Hostname() で取得したコンテナのホスト名
+    hostLabel string          // hostname の先頭ラベル（"." より前の部分）
+    managed   map[int]struct{} // このwatcherが登録したポートのセット
 }
 
-func NewWatcher(scanner PortScanner, client ManagementClient, interval time.Duration) *Watcher
+func NewWatcher(scanner PortScanner, client ManagementClient, interval time.Duration, hostname string) *Watcher
 
 // Run はポーリングループを開始し、ctx がキャンセルされると
 // クリーンアップ後に return する。
@@ -388,8 +389,10 @@ func NewManagementHTTPClient(serverURL string) *ManagementHTTPClient
 |--------|----|----|
 | managed | `map[int]struct{}` | 管理中のポート番号セット |
 | previous | `map[int]struct{}` | 前回スキャン結果（差分計算用） |
-| サービス名 | `string` | `port-{ポート番号}` 形式 |
-| ターゲット | `string` | `localhost:{ポート番号}` |
+| hostname | `string` | `os.Hostname()` で取得したコンテナのFQDN（例: `foobar.test`） |
+| hostLabel | `string` | hostname の先頭ラベル（例: `foobar`）。`.` が含まれない場合は hostname そのもの |
+| サービス名 | `string` | `{hostLabel}-{ポート番号}` 形式（例: `foobar-8080`） |
+| ターゲット | `string` | `{hostname}:{ポート番号}`（例: `foobar.test:8080`） |
 
 ## Error Handling
 

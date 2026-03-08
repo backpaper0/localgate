@@ -64,13 +64,22 @@
 - **Rationale**: Go の標準的な依存注入パターン。steering の "インターフェース定義" 原則に合致。
 - **Trade-offs**: インターフェース分が若干コード量増加するが、テスト容易性のコストとして許容範囲
 
-### Decision: ターゲットアドレスを `localhost:{port}` 固定
+### Decision: ターゲットアドレスを `{hostname}:{port}` とする
 - **Context**: watch コマンドが監視するポートの登録 target をどうするか
 - **Alternatives Considered**:
-  1. OS のホスト名を取得 (`os.Hostname()`) — register コマンドと同様
-  2. `localhost:{port}` 固定 — シンプル
-- **Selected Approach**: コンテナ内のサービスは同一ホストで動くため `localhost:{port}` を使用
-- **Rationale**: ユースケースがコンテナ内バックグラウンド実行に限定されており、同一ホストが保証される
+  1. `localhost:{port}` 固定 — シンプルだが、同一ネットワークの別コンテナからルーティングされる localgate がアクセスできない
+  2. OS のホスト名を取得 (`os.Hostname()`) して `{hostname}:{port}` — 同一ネットワーク内の別コンテナがコンテナ名/ホスト名でアクセス可能
+- **Selected Approach**: `os.Hostname()` でホスト名を取得し `{hostname}:{port}` を target とする
+- **Rationale**: ユースケースはコンテナ内バックグラウンド実行だが、localgate サーバが別コンテナに存在するケースを想定。`register` コマンドがポート番号のみ指定時に `os.Hostname()` を使う既存パターンと一致する。
+
+### Decision: サービス名を `{ホスト名先頭ラベル}-{port}` 形式とする
+- **Context**: 自動登録するサービスの名前をどう決めるか
+- **Alternatives Considered**:
+  1. `port-{n}` — シンプルだが、複数コンテナが同一 localgate を使う場合に名前衝突が起きる
+  2. `{hostname}-{n}` — ホスト名全体（FQDN）を使う。長くなる場合がある
+  3. `{ホスト名先頭ラベル}-{n}` — FQDNの先頭部分（最初の `.` より前）。サブドメインとして識別しやすい
+- **Selected Approach**: `{hostLabel}-{n}` を採用。`hostLabel` は `strings.SplitN(hostname, ".", 2)[0]`
+- **Rationale**: コンテナのホスト名は通常 `servicename.network` のような形式になるため、先頭ラベルがコンテナの識別子として機能する。`register` コマンドで登録されるサービスとの衝突を避けやすい。
 
 ### Decision: IPv4/IPv6 重複ポートの扱い
 - **Context**: 同一ポートが `/proc/net/tcp` と `/proc/net/tcp6` 両方に現れる場合がある

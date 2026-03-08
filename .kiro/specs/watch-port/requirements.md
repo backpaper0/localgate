@@ -47,10 +47,10 @@
 
 #### Acceptance Criteria
 
-1. When 前回ポーリング時には存在せず、今回ポーリング時に新たに検出されたLISTENポートがある場合, the localgate shall そのポートを対象として localgate サーバの管理APIへサービス登録リクエストを送信する。
+1. When 前回ポーリング時には存在せず、今回ポーリング時に新たに検出されたLISTENポートがある場合, the localgate shall そのポートを対象として localgate サーバの管理APIへサービス登録リクエストを送信する。登録時のターゲットは `{os.Hostname()}:{ポート番号}` とする。
 2. When ポートの自動登録が成功した場合, the localgate shall 登録されたサービス名とポート番号を標準出力にログとして出力する。
 3. If ポートの登録リクエストが失敗した場合, the localgate shall エラーをログに記録し、そのポートを未登録状態のまま次のサイクルで再試行する。
-4. The localgate shall 自動登録時のサービス名を `port-{ポート番号}` の形式で生成する。
+4. The localgate shall 自動登録時のサービス名を `{ホスト名先頭ラベル}-{ポート番号}` の形式で生成する。ホスト名先頭ラベルとは `os.Hostname()` の結果のうち最初の `.` より前の部分であり、`.` が含まれない場合はホスト名全体を使用する（例: ホスト名 `foobar.test`・ポート `8080` → `foobar-8080`）。
 5. The localgate shall watchコマンドが自動登録したサービスの一覧を内部で保持する。
 
 ---
