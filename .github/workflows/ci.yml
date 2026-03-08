@@ -44,11 +44,14 @@ jobs:
 
       - name: Build binaries
         run: |
-          GOOS=linux   GOARCH=amd64 go build -o localgate-linux-amd64   .
-          GOOS=linux   GOARCH=arm64 go build -o localgate-linux-arm64   .
-          GOOS=darwin  GOARCH=amd64 go build -o localgate-darwin-amd64  .
-          GOOS=darwin  GOARCH=arm64 go build -o localgate-darwin-arm64  .
-          GOOS=windows GOARCH=amd64 go build -o localgate-windows-amd64.exe .
+          LDFLAGS="-X 'localgate/internal/version.Version=${{ github.ref_name }}' \
+                   -X 'localgate/internal/version.Commit=${{ github.sha }}' \
+                   -X 'localgate/internal/version.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+          GOOS=linux   GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o localgate-linux-amd64   .
+          GOOS=linux   GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o localgate-linux-arm64   .
+          GOOS=darwin  GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o localgate-darwin-amd64  .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags "${LDFLAGS}" -o localgate-darwin-arm64  .
+          GOOS=windows GOARCH=amd64 go build -ldflags "${LDFLAGS}" -o localgate-windows-amd64.exe .
 
       - name: Create draft release
         env:
