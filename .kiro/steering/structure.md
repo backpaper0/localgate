@@ -16,6 +16,7 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 | `cmd/register.go` | `localgate register <name> <target\|port>` | サービス登録 |
 | `cmd/unregister.go` | `localgate unregister <name>` | サービス解除 |
 | `cmd/list.go` | `localgate list` | 登録済みサービス一覧 |
+| `cmd/watch.go` | `localgate watch` | LISTENポートを監視して自動登録・解除 |
 | `cmd/client.go` | （共有） | クライアントコマンド共通の型・ユーティリティ |
 
 **クライアントコマンドの共通パターン**:
@@ -30,7 +31,9 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 |---|---|
 | `internal/registry` | サービスのルーティングテーブル管理（登録・解除・検索） |
 | `internal/proxy` | リバースプロキシ転送、Hostヘッダからのサブドメイン抽出 |
-| `internal/management` | 管理HTTP API（サービスのCRUD） |
+| `internal/management` | 管理HTTP API（サービスのCRUD）とポータルルーティングの統合 |
+| `internal/portal` | 管理ポータルHTMLページのハンドラ（`embed.FS`でHTMLを同梱、テンプレートでポーリング間隔を注入） |
+| `internal/watcher` | ポート自動監視（`/proc/net/tcp` スキャン）・登録・解除ロジック |
 | `internal/server` | HTTPサーバ本体、プロキシ/管理APIへのルーティング判定。`ServerConfig.Hostname` で追加の自己ホスト名を指定可能（コンテナ環境対応） |
 
 ### エントリポイント

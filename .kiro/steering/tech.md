@@ -39,6 +39,7 @@
 # Register:   go run . register <name> <target|port>
 # Unregister: go run . unregister <name>
 # List:       go run . list
+# Watch:      go run . watch [--interval <sec>]
 ```
 
 ## CI/CD
@@ -55,3 +56,5 @@ GitHub Actions による自動化パイプライン（`.github/workflows/`）:
 - **標準ライブラリ優先**: フレームワークを使わずGoの `net/http/httputil.ReverseProxy` をそのまま利用
 - **インメモリレジストリ**: 永続化なし、プロセス再起動でリセット（シンプルさを優先）
 - **管理API/プロキシの共存**: 単一ポートでサブドメインの有無により動的に振り分け
+- **`embed.FS` によるHTML同梱**: ポータルHTMLをバイナリに埋め込み、外部ファイル依存なし
+- **`/proc/net/tcp` スキャン**: `watch` コマンドはLinuxの `/proc/net/tcp` を読み解いてLISTENポートを検出
