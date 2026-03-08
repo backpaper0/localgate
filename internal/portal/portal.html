@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalGate Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Tailwind CDN オフライン時のフォールバックスタイル */
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f8f4ff; color: #333; }
+    header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #e8e0f5; display: flex; align-items: center; gap: 0.75rem; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    .card { background: #fff; border-radius: 1rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(160,120,220,0.08); transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 6px 20px rgba(160,120,220,0.18); }
+    .btn-deregister { background: #fce4ec; color: #c62828; border: none; border-radius: 0.5rem; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.875rem; }
+    .btn-deregister:hover { background: #f8bbd0; }
+    .error-banner { background: #fff3e0; border: 1px solid #ffb74d; border-radius: 0.75rem; padding: 0.75rem 1.25rem; margin-bottom: 1rem; color: #e65100; }
+    .empty-state { text-align: center; padding: 3rem; color: #9e8fb5; }
+  </style>
+</head>
+<body class="bg-purple-50 text-gray-800 min-h-screen">
+  <header class="bg-white shadow-sm border-b border-purple-100 sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
+      <div class="text-2xl">🚪</div>
+      <div>
+        <h1 class="text-xl font-bold text-purple-800">LocalGate</h1>
+        <p class="text-xs text-purple-400">ローカル開発プロキシ管理ポータル</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div id="error-banner" class="error-banner hidden rounded-xl" role="alert">
+      <span id="error-message"></span>
+    </div>
+
+    <div id="services-container">
+      <div class="empty-state">
+        <div class="text-5xl mb-4">🌱</div>
+        <p class="text-lg">読み込み中...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const REFRESH_INTERVAL_MS = {{.RefreshIntervalMs}};
+
+    const container = document.getElementById('services-container');
+    const errorBanner = document.getElementById('error-banner');
+    const errorMessage = document.getElementById('error-message');
+
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      errorBanner.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorBanner.classList.add('hidden');
+    }
+
+    function createServiceCard(service) {
+      const card = document.createElement('div');
+      card.className = 'card bg-white rounded-2xl p-5 mb-4 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow duration-200';
+      card.dataset.name = service.name;
+
+      const info = document.createElement('div');
+      const serviceUrl = `http://${service.name}.${window.location.host}`;
+      const nameEl = document.createElement('a');
+      nameEl.className = 'font-semibold text-purple-800 text-lg hover:underline';
+      nameEl.textContent = service.name;
+      nameEl.href = serviceUrl;
+      nameEl.target = '_blank';
+      nameEl.rel = 'noopener noreferrer';
+
+      const targetEl = document.createElement('div');
+      targetEl.className = 'text-sm text-gray-500 mt-0.5';
+      targetEl.textContent = service.target;
+
+      info.appendChild(nameEl);
+      info.appendChild(targetEl);
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-deregister bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 rounded-xl px-4 py-1.5 text-sm font-medium transition-colors duration-150';
+      btn.textContent = '解除';
+      btn.addEventListener('click', () => handleDeregister(service.name, card));
+
+      card.appendChild(info);
+      card.appendChild(btn);
+      return card;
+    }
+
+    async function handleDeregister(name, cardEl) {
+      if (!confirm(`「${name}」のサービスを解除しますか？`)) return;
+
+      try {
+        const res = await fetch(`/services/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+          cardEl.remove();
+          checkEmptyState();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          showError(`解除に失敗しました: ${data.error || res.statusText}`);
+        }
+      } catch (e) {
+        showError(`解除リクエストに失敗しました: ${e.message}`);
+      }
+    }
+
+    function checkEmptyState() {
+      const cards = container.querySelectorAll('[data-name]');
+      if (cards.length === 0) {
+        renderEmpty();
+      }
+    }
+
+    function renderEmpty() {
+      container.innerHTML = '';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state text-center py-16';
+      const icon = document.createElement('div');
+      icon.className = 'text-5xl mb-4';
+      icon.textContent = '🌿';
+      const msg = document.createElement('p');
+      msg.className = 'text-lg text-purple-300';
+      msg.textContent = '登録済みサービスはありません';
+      empty.appendChild(icon);
+      empty.appendChild(msg);
+      container.appendChild(empty);
+    }
+
+    async function fetchServices() {
+      try {
+        const res = await fetch('/services');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        hideError();
+        renderServices(data.services || []);
+      } catch (e) {
+        showError(`サービス一覧の取得に失敗しました。次の更新で再試行します。(${e.message})`);
+        console.error('ポーリングエラー:', e);
+      }
+    }
+
+    function renderServices(services) {
+      // 既存カードの名前セットを取得
+      const existing = new Map();
+      container.querySelectorAll('[data-name]').forEach(el => existing.set(el.dataset.name, el));
+
+      const newNames = new Set(services.map(s => s.name));
+
+      // 削除されたサービスのカードを除去
+      existing.forEach((el, name) => {
+        if (!newNames.has(name)) el.remove();
+      });
+
+      if (services.length === 0) {
+        if (existing.size > 0 || container.querySelector('.empty-state')) {
+          renderEmpty();
+        } else {
+          renderEmpty();
+        }
+        return;
+      }
+
+      // コンテナが空状態メッセージのみの場合はクリア
+      if (container.querySelector('.empty-state') || !container.querySelector('[data-name]')) {
+        container.innerHTML = '';
+      }
+
+      // 新規サービスを追加
+      services.forEach(service => {
+        if (!existing.has(service.name)) {
+          container.appendChild(createServiceCard(service));
+        }
+      });
+    }
+
+    // 初回読み込みとポーリング開始
+    fetchServices();
+    setInterval(fetchServices, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>

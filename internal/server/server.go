@@ -15,8 +15,9 @@ import (
 
 // ServerConfig はサーバの設定を保持する
 type ServerConfig struct {
-	Port     int
-	Hostname string // 追加の自己ホスト名（省略時は空文字列 ""）
+	Port                  int
+	Hostname              string // 追加の自己ホスト名（省略時は空文字列 ""）
+	PortalRefreshInterval int    // ポータル画面のポーリング間隔（秒）、デフォルト 2
 }
 
 // ProxyServer はHTTPリクエストを受信しルーティングを行うサーバ
@@ -44,7 +45,7 @@ func NewProxyServer(config ServerConfig, reg registry.ServiceRegistry) *ProxySer
 		config:        config,
 		registry:      reg,
 		proxy:         proxy.NewHandler(),
-		management:    management.NewAPI(reg),
+		management:    management.NewAPI(reg, config.PortalRefreshInterval),
 		selfHostnames: selfHostnames,
 	}
 	s.httpServer = &http.Server{
