@@ -7,7 +7,15 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o localgate .
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags "-X 'localgate/internal/version.Version=${VERSION}' \
+              -X 'localgate/internal/version.Commit=${COMMIT}' \
+              -X 'localgate/internal/version.BuildDate=${BUILD_DATE}'" \
+    -o localgate .
 
 FROM alpine:3
 
