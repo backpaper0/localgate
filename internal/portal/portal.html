@@ -64,9 +64,13 @@
       card.dataset.name = service.name;
 
       const info = document.createElement('div');
-      const nameEl = document.createElement('div');
-      nameEl.className = 'font-semibold text-purple-800 text-lg';
+      const serviceUrl = `http://${service.name}.${window.location.host}`;
+      const nameEl = document.createElement('a');
+      nameEl.className = 'font-semibold text-purple-800 text-lg hover:underline';
       nameEl.textContent = service.name;
+      nameEl.href = serviceUrl;
+      nameEl.target = '_blank';
+      nameEl.rel = 'noopener noreferrer';
 
       const targetEl = document.createElement('div');
       targetEl.className = 'text-sm text-gray-500 mt-0.5';
