@@ -10,6 +10,7 @@
 
 - `localgate watch` コマンドで Linux 上のLISTENポートを継続的に監視する
 - 新規LISTENポートを `port-{n}` の名前で localgate に自動登録する
+REVIEW: サービス名は`{ホスト名のサブドメイン}-{port}`にしてほしい。例えばホスト名が`foobar.test`でポートが`8080`の場合、`foobar-8080`という名前にしてほしい。ホスト名が`hoge`でポートが`9999`の場合は`hoge-9999`。
 - LISTENが終了したポートのサービスを自動解除する
 - コマンド終了時（SIGINT/SIGTERM）に登録済みサービスをすべてクリーンアップする
 
@@ -229,6 +230,7 @@ sequenceDiagram
 **Responsibilities & Constraints**
 - `PortScanner.Scan()` を `interval` 間隔で呼び出し、前回セットとの差分を計算する
 - 新規ポート: `ManagementClient.Register("port-{n}", "localhost:{n}")` を呼び出す
+REVIEW: `localhost`ではなく`$(hostname)`にしてほしい。ユースケースはコンテナ内から同一ネットワークに所属している別コンテナ宛にサービス登録を行うため。
 - 消滅ポート: `ManagementClient.Deregister("port-{n}")` を呼び出す
 - 管理済みポートセット (`map[int]struct{}`) を内部状態として保持
 - `ctx.Done()` 検知時: 管理済みポートをすべて解除してから return する
