@@ -6,7 +6,7 @@
 
 ## Core Technologies
 
-- **Language**: Go 1.22+
+- **Language**: Go 1.26+
 - **CLI Framework**: [cobra](https://github.com/spf13/cobra) v1.8
 - **HTTP**: Go標準ライブラリ (`net/http`, `net/http/httputil`)
 - **Tool Management**: mise (`mise.toml`)
@@ -28,18 +28,25 @@
 ## Development Environment
 
 ### Required Tools
-- Go 1.22+
+- Go 1.26+
 - mise（バージョン管理）
+- golangci-lint（静的解析・フォーマット）
 
 ### Common Commands
 ```bash
-# Build:      go build -o localgate .
-# Test:       go test ./...
-# Start:      go run . start
-# Register:   go run . register <name> <target|port>
-# Unregister: go run . unregister <name>
-# List:       go run . list
-# Watch:      go run . watch [--interval <sec>]
+# mise タスク経由が推奨:
+mise run build   # go build -o localgate .
+mise run test    # go test ./...
+mise run lint    # golangci-lint run ./...
+mise run fix     # golangci-lint run --fix ./...
+
+# 直接実行:
+go run . start
+go run . register <name> <target|port>
+go run . unregister <name>
+go run . list
+go run . watch [--interval <sec>]
+go run . version
 ```
 
 ## CI/CD

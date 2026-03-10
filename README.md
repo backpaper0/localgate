@@ -113,6 +113,12 @@ localgate unregister <name>
 localgate list
 ```
 
+### バージョン確認
+
+```bash
+localgate version
+```
+
 ### ポートの自動監視
 
 ```bash
@@ -223,7 +229,7 @@ curl http://foobar.localgate.test:9000/
 
 ## 要件
 
-- Go 1.22 以上
+- Go 1.26 以上
 
 ## ライセンス
 
