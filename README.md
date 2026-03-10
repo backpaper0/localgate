@@ -29,7 +29,7 @@ go install github.com/backpaper0/localgate@latest
 ```bash
 git clone https://github.com/backpaper0/localgate
 cd localgate
-go build -o localgate .
+mise run build
 ```
 
 またはDockerで利用:
@@ -219,6 +219,19 @@ curl -X POST http://localgate.test:9000/services \
 
 # プロキシ経由でアクセス
 curl http://foobar.localgate.test:9000/
+```
+
+## 開発
+
+### タスク
+
+[mise](https://mise.jdx.dev/) でタスクを管理している。
+
+```bash
+mise run build   # バイナリのビルド
+mise run test    # テストの実行
+mise run lint    # 静的解析（golangci-lint）
+mise run fix     # 静的解析 + 自動修正
 ```
 
 ## ユースケース
