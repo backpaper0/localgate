@@ -14,3 +14,7 @@ run = "go test ./..."
 [tasks.lint]
 description = "Run linter"
 run = "golangci-lint run ./..."
+
+[tasks.fix]
+description = "Run linter with auto-fix"
+run = "golangci-lint run --fix ./..."
