@@ -58,7 +58,7 @@ func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 			existingTarget, _ := a.registry.Lookup(req.Name)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(map[string]string{
+			_ = json.NewEncoder(w).Encode(map[string]string{
 				"error":           "service already exists",
 				"existing_target": existingTarget,
 			})
@@ -69,7 +69,7 @@ func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(registry.ServiceEntry{Name: req.Name, Target: req.Target})
+	_ = json.NewEncoder(w).Encode(registry.ServiceEntry{Name: req.Name, Target: req.Target})
 }
 
 func (a *API) handleDeregister(w http.ResponseWriter, r *http.Request) {
@@ -92,11 +92,11 @@ func (a *API) handleList(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(ListServicesResponse{Services: entries})
+	_ = json.NewEncoder(w).Encode(ListServicesResponse{Services: entries})
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }

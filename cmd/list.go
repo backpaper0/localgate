@@ -23,7 +23,7 @@ func newListCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("接続エラー: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != http.StatusOK {
 				var apiErr apiError
@@ -39,12 +39,12 @@ func newListCmd() *cobra.Command {
 			}
 
 			if len(listResp.Services) == 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), "登録済みサービスはありません")
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "登録済みサービスはありません")
 				return nil
 			}
 
 			for _, svc := range listResp.Services {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", svc.Name, svc.Target)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", svc.Name, svc.Target)
 			}
 			return nil
 		},

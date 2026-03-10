@@ -13,7 +13,7 @@ func TestProxyForwardsRequest(t *testing.T) {
 	// バックエンドサーバをセットアップ
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("hello from backend"))
+		_, _ = w.Write([]byte("hello from backend"))
 	}))
 	defer backend.Close()
 

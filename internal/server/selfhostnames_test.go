@@ -27,7 +27,7 @@ func TestSelfHostnames_DefaultLocalhostOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("localhost should route to management API, got %d", resp.StatusCode)
 	}
@@ -39,7 +39,7 @@ func TestSelfHostnames_DefaultLocalhostOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp2.Body.Close()
+	_ = resp2.Body.Close()
 	if resp2.StatusCode != http.StatusNotFound {
 		t.Errorf("localgate.test without --hostname should not route to management API, got %d", resp2.StatusCode)
 	}
@@ -57,7 +57,7 @@ func TestSelfHostnames_WithCustomHostname(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("localhost should route to management API, got %d", resp.StatusCode)
 	}
@@ -69,7 +69,7 @@ func TestSelfHostnames_WithCustomHostname(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp2.Body.Close()
+	_ = resp2.Body.Close()
 	if resp2.StatusCode != http.StatusOK {
 		t.Errorf("localgate.test with --hostname should route to management API, got %d", resp2.StatusCode)
 	}
@@ -87,7 +87,7 @@ func TestSelfHostnames_CaseInsensitive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("case-normalized hostname should route to management API, got %d", resp.StatusCode)
 	}

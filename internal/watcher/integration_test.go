@@ -46,15 +46,16 @@ func TestIntegration_FullCycle(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		record := req{method: r.Method, path: r.URL.Path}
-		if r.Method == http.MethodPost {
+		switch r.Method {
+		case http.MethodPost:
 			var body map[string]string
-			json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			record.name = body["name"]
 			record.target = body["target"]
 			w.WriteHeader(http.StatusCreated)
-		} else if r.Method == http.MethodDelete {
+		case http.MethodDelete:
 			w.WriteHeader(http.StatusNoContent)
-		} else {
+		default:
 			w.WriteHeader(http.StatusOK)
 		}
 		requests = append(requests, record)
@@ -118,12 +119,13 @@ func TestIntegration_ContextCancel_CleansUpAll(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
-		if r.Method == http.MethodPost {
+		switch r.Method {
+		case http.MethodPost:
 			w.WriteHeader(http.StatusCreated)
-		} else if r.Method == http.MethodDelete {
+		case http.MethodDelete:
 			deleted[r.URL.Path]++
 			w.WriteHeader(http.StatusNoContent)
-		} else {
+		default:
 			w.WriteHeader(http.StatusOK)
 		}
 	}))

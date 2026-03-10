@@ -40,10 +40,14 @@ func TestResolveServerURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Unsetenv("LOCALGATE_SERVER")
+			if err := os.Unsetenv("LOCALGATE_SERVER"); err != nil {
+				t.Fatal(err)
+			}
 			if tt.envValue != "" {
-				os.Setenv("LOCALGATE_SERVER", tt.envValue)
-				defer os.Unsetenv("LOCALGATE_SERVER")
+				if err := os.Setenv("LOCALGATE_SERVER", tt.envValue); err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = os.Unsetenv("LOCALGATE_SERVER") }()
 			}
 
 			got := resolveServerURL(tt.flagValue)

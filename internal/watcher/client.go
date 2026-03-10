@@ -44,7 +44,7 @@ func (c *ManagementHTTPClient) Ping() error {
 	if err != nil {
 		return fmt.Errorf("管理APIへの接続に失敗: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return nil
 }
 
@@ -66,7 +66,7 @@ func (c *ManagementHTTPClient) Register(name, target string) error {
 	if err != nil {
 		return fmt.Errorf("サービス登録リクエストに失敗: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode == http.StatusCreated {
 		return nil
@@ -86,7 +86,7 @@ func (c *ManagementHTTPClient) Deregister(name string) error {
 	if err != nil {
 		return fmt.Errorf("サービス解除リクエストに失敗: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotFound {
 		return nil

@@ -28,10 +28,10 @@ func newUnregisterCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("接続エラー: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode == http.StatusNoContent {
-				fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を解除しました\n", args[0])
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を解除しました\n", args[0])
 				return nil
 			}
 

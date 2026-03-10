@@ -67,7 +67,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 	prevSet := toSet(prev)
 
-	fmt.Fprintf(os.Stdout, "watch: ポート監視を開始しました (ホスト: %s, 間隔: %v)\n", w.hostname, w.interval)
+	_, _ = fmt.Fprintf(os.Stdout, "watch: ポート監視を開始しました (ホスト: %s, 間隔: %v)\n", w.hostname, w.interval)
 
 	ticker := time.NewTicker(w.interval)
 	defer ticker.Stop()
@@ -95,7 +95,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 						continue
 					}
 					w.managed[port] = struct{}{}
-					fmt.Fprintf(os.Stdout, "watch: サービス登録 %s → %s\n", name, target)
+					_, _ = fmt.Fprintf(os.Stdout, "watch: サービス登録 %s → %s\n", name, target)
 				}
 			}
 
@@ -109,7 +109,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 							continue
 						}
 						delete(w.managed, port)
-						fmt.Fprintf(os.Stdout, "watch: サービス解除 %s\n", name)
+						_, _ = fmt.Fprintf(os.Stdout, "watch: サービス解除 %s\n", name)
 					}
 				}
 			}
@@ -121,7 +121,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 
 // cleanup は管理済みポートをすべて解除する。
 func (w *Watcher) cleanup() {
-	fmt.Fprintf(os.Stdout, "watch: クリーンアップを開始しています...\n")
+	_, _ = fmt.Fprintf(os.Stdout, "watch: クリーンアップを開始しています...\n")
 	for port := range w.managed {
 		name := w.serviceName(port)
 		if err := w.client.Deregister(name); err != nil {
@@ -129,9 +129,9 @@ func (w *Watcher) cleanup() {
 			continue
 		}
 		delete(w.managed, port)
-		fmt.Fprintf(os.Stdout, "watch: クリーンアップ: サービス解除 %s\n", name)
+		_, _ = fmt.Fprintf(os.Stdout, "watch: クリーンアップ: サービス解除 %s\n", name)
 	}
-	fmt.Fprintf(os.Stdout, "watch: クリーンアップが完了しました\n")
+	_, _ = fmt.Fprintf(os.Stdout, "watch: クリーンアップが完了しました\n")
 }
 
 // toSet はポートスライスをセット (map) に変換する。
