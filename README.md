@@ -29,7 +29,7 @@ go install github.com/backpaper0/localgate@latest
 ```bash
 git clone https://github.com/backpaper0/localgate
 cd localgate
-go build -o localgate .
+mise run build
 ```
 
 またはDockerで利用:
@@ -111,6 +111,12 @@ localgate unregister <name>
 
 ```bash
 localgate list
+```
+
+### バージョン確認
+
+```bash
+localgate version
 ```
 
 ### ポートの自動監視
@@ -215,6 +221,19 @@ curl -X POST http://localgate.test:9000/services \
 curl http://foobar.localgate.test:9000/
 ```
 
+## 開発
+
+### タスク
+
+[mise](https://mise.jdx.dev/) でタスクを管理している。
+
+```bash
+mise run build   # バイナリのビルド
+mise run test    # テストの実行
+mise run lint    # 静的解析（golangci-lint）
+mise run fix     # 静的解析 + 自動修正
+```
+
 ## ユースケース
 
 - ローカル開発環境で複数サービスを単一ポートで公開
@@ -223,7 +242,7 @@ curl http://foobar.localgate.test:9000/
 
 ## 要件
 
-- Go 1.22 以上
+- Go 1.26 以上
 
 ## ライセンス
 

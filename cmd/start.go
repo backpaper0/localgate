@@ -43,7 +43,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	fmt.Fprintf(os.Stdout, "LocalGate starting on port %d\n", port)
+	_, _ = fmt.Fprintf(os.Stdout, "LocalGate starting on port %d\n", port)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -52,7 +52,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 
 	select {
 	case <-ctx.Done():
-		fmt.Fprintln(os.Stdout, "Shutting down...")
+		_, _ = fmt.Fprintln(os.Stdout, "Shutting down...")
 		return srv.Shutdown(context.Background())
 	case err := <-errCh:
 		return err

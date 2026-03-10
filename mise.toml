@@ -1,3 +1,20 @@
 [tools]
 gh = "latest"
 go = "1.26"
+golangci-lint = "latest"
+
+[tasks.build]
+description = "Build localgate binary"
+run = "go build -o localgate ."
+
+[tasks.test]
+description = "Run tests"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Run linter"
+run = "golangci-lint run ./..."
+
+[tasks.fix]
+description = "Run linter with auto-fix"
+run = "golangci-lint run --fix ./..."

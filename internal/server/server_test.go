@@ -23,7 +23,7 @@ func newTestServer() (*httptest.Server, registry.ServiceRegistry) {
 func TestProxyForwardsToRegisteredBackend(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("backend response"))
+		_, _ = w.Write([]byte("backend response"))
 	}))
 	defer backend.Close()
 
@@ -31,7 +31,9 @@ func TestProxyForwardsToRegisteredBackend(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr, false)
+	if err := reg.Register("foo", backendAddr, false); err != nil {
+		t.Fatal(err)
+	}
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/path", nil)
 	req.Host = "foo.localhost"
@@ -40,7 +42,7 @@ func TestProxyForwardsToRegisteredBackend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -57,8 +59,12 @@ func TestProxyReturns404AfterDeregister(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr, false)
-	reg.Deregister("foo")
+	if err := reg.Register("foo", backendAddr, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.Deregister("foo"); err != nil {
+		t.Fatal(err)
+	}
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
 	req.Host = "foo.localhost"
@@ -67,7 +73,7 @@ func TestProxyReturns404AfterDeregister(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", resp.StatusCode)
@@ -85,7 +91,7 @@ func TestProxyReturns404ForUnregisteredSubdomain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", resp.StatusCode)
@@ -96,7 +102,9 @@ func TestProxyReturns502WhenBackendDown(t *testing.T) {
 	ts, reg := newTestServer()
 	defer ts.Close()
 
-	reg.Register("foo", "localhost:19998", false)
+	if err := reg.Register("foo", "localhost:19998", false); err != nil {
+		t.Fatal(err)
+	}
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
 	req.Host = "foo.localhost"
@@ -105,7 +113,7 @@ func TestProxyReturns502WhenBackendDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusBadGateway {
 		t.Errorf("expected 502, got %d", resp.StatusCode)
@@ -127,7 +135,7 @@ func TestManagementAPIRegisterAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST /services failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected 201, got %d", resp.StatusCode)
@@ -139,14 +147,16 @@ func TestManagementAPIRegisterAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /services failed: %v", err)
 	}
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 
 	if resp2.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp2.StatusCode)
 	}
 
 	var listResp management.ListServicesResponse
-	json.NewDecoder(resp2.Body).Decode(&listResp)
+	if err := json.NewDecoder(resp2.Body).Decode(&listResp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if len(listResp.Services) != 1 {
 		t.Errorf("expected 1 service, got %d", len(listResp.Services))
 	}
@@ -159,7 +169,9 @@ func TestManagementAPIDeleteAndList(t *testing.T) {
 	ts, reg := newTestServer()
 	defer ts.Close()
 
-	reg.Register("foo", "localhost:3000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
 
 	// DELETE /services/foo
 	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/services/foo", nil)
@@ -167,7 +179,7 @@ func TestManagementAPIDeleteAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DELETE /services/foo failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", resp.StatusCode)
@@ -179,10 +191,12 @@ func TestManagementAPIDeleteAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /services failed: %v", err)
 	}
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 
 	var listResp management.ListServicesResponse
-	json.NewDecoder(resp2.Body).Decode(&listResp)
+	if err := json.NewDecoder(resp2.Body).Decode(&listResp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if len(listResp.Services) != 0 {
 		t.Errorf("expected 0 services after delete, got %d", len(listResp.Services))
 	}
@@ -197,7 +211,7 @@ func TestManagementAPIDeleteNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DELETE failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", resp.StatusCode)
@@ -216,7 +230,7 @@ func TestManagementAPIPostMissingFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", resp.StatusCode)
@@ -238,7 +252,7 @@ func TestContainerEnv_LocalgatetestRoutesToManagementAPI_POST(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected 201, got %d", resp.StatusCode)
@@ -256,7 +270,7 @@ func TestContainerEnv_LocalgatetestRoutesToManagementAPI_GET(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -273,7 +287,9 @@ func TestContainerEnv_SubdomainOfLocalgateProxied(t *testing.T) {
 	defer ts.Close()
 
 	backendAddr := strings.TrimPrefix(backend.URL, "http://")
-	reg.Register("foo", backendAddr, false)
+	if err := reg.Register("foo", backendAddr, false); err != nil {
+		t.Fatal(err)
+	}
 
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
 	req.Host = "foo.localgate.test:9000"
@@ -282,7 +298,7 @@ func TestContainerEnv_SubdomainOfLocalgateProxied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 (proxied), got %d", resp.StatusCode)
@@ -300,7 +316,7 @@ func TestContainerEnv_LocalhostStillRoutesToManagementAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -318,7 +334,7 @@ func TestContainerEnv_WithoutHostnameFlagLocalgateTestIsNotManagementAPI(t *test
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// --hostname 未指定時は localgate.test は管理APIへルーティングされない
 	if resp.StatusCode == http.StatusOK {

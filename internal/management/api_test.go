@@ -41,7 +41,9 @@ func TestPortalReturnsHTML(t *testing.T) {
 
 func TestListServicesStillReturnsJSON(t *testing.T) {
 	api, reg := newAPI()
-	reg.Register("svc", "localhost:8080", false)
+	if err := reg.Register("svc", "localhost:8080", false); err != nil {
+		t.Fatal(err)
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/services", nil)
 	w := httptest.NewRecorder()
@@ -109,7 +111,9 @@ func TestRegisterServiceInvalidJSON(t *testing.T) {
 
 func TestDeregisterService(t *testing.T) {
 	api, reg := newAPI()
-	reg.Register("foo", "localhost:3000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
 
 	r := httptest.NewRequest(http.MethodDelete, "/services/foo", nil)
 	w := httptest.NewRecorder()
@@ -141,8 +145,12 @@ func TestDeregisterServiceNotFound(t *testing.T) {
 
 func TestListServices(t *testing.T) {
 	api, reg := newAPI()
-	reg.Register("foo", "localhost:3000", false)
-	reg.Register("bar", "localhost:4000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.Register("bar", "localhost:4000", false); err != nil {
+		t.Fatal(err)
+	}
 
 	r := httptest.NewRequest(http.MethodGet, "/services", nil)
 	w := httptest.NewRecorder()

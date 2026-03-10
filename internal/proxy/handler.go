@@ -29,7 +29,7 @@ func (h *reverseProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, 
 	rp.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadGateway)
-		json.NewEncoder(w).Encode(map[string]string{"error": "backend unavailable"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "backend unavailable"})
 	}
 
 	rp.ServeHTTP(w, r)

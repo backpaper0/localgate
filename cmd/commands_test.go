@@ -28,7 +28,7 @@ func TestRegisterCmd_Success(t *testing.T) {
 			t.Errorf("unexpected request body: %+v", req)
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(serviceEntry{Name: req.Name, Target: req.Target})
+		_ = json.NewEncoder(w).Encode(serviceEntry(req))
 	}))
 	defer srv.Close()
 
@@ -48,7 +48,7 @@ func TestRegisterCmd_Success(t *testing.T) {
 func TestRegisterCmd_APIError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(apiError{Error: "名前が既に登録されています"})
+		_ = json.NewEncoder(w).Encode(apiError{Error: "名前が既に登録されています"})
 	}))
 	defer srv.Close()
 
@@ -95,7 +95,7 @@ func TestRegisterCmd_ConflictWithConfirmYes(t *testing.T) {
 			// 1回目: 409 Conflict を返す
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
+			_ = json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
 			return
 		}
 		// 2回目: X-Force-Overwrite ヘッダーを確認して 201 Created を返す
@@ -103,7 +103,7 @@ func TestRegisterCmd_ConflictWithConfirmYes(t *testing.T) {
 			t.Errorf("expected X-Force-Overwrite: true header on retry")
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
+		_ = json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
 	}))
 	defer srv.Close()
 
@@ -130,7 +130,7 @@ func TestRegisterCmd_ConflictWithConfirmNo(t *testing.T) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
+		_ = json.NewEncoder(w).Encode(apiError{Error: "service already exists", ExistingTarget: "localhost:3000"})
 	}))
 	defer srv.Close()
 
@@ -157,7 +157,7 @@ func TestRegisterCmd_ConflictWithForceFlag(t *testing.T) {
 			t.Errorf("expected X-Force-Overwrite: true header with --force flag")
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
+		_ = json.NewEncoder(w).Encode(serviceEntry{Name: "myapp", Target: "localhost:4000"})
 	}))
 	defer srv.Close()
 
@@ -190,7 +190,7 @@ func TestRegisterCmd_PortOnly(t *testing.T) {
 			t.Errorf("expected target %q, got %q", expectedTarget, req.Target)
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(serviceEntry{Name: req.Name, Target: req.Target})
+		_ = json.NewEncoder(w).Encode(serviceEntry(req))
 	}))
 	defer srv.Close()
 
@@ -236,7 +236,7 @@ func TestUnregisterCmd_Success(t *testing.T) {
 func TestUnregisterCmd_NotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(apiError{Error: "service not found"})
+		_ = json.NewEncoder(w).Encode(apiError{Error: "service not found"})
 	}))
 	defer srv.Close()
 
@@ -254,7 +254,7 @@ func TestUnregisterCmd_NotFound(t *testing.T) {
 func TestUnregisterCmd_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(apiError{Error: "内部エラーが発生しました"})
+		_ = json.NewEncoder(w).Encode(apiError{Error: "内部エラーが発生しました"})
 	}))
 	defer srv.Close()
 
@@ -304,7 +304,7 @@ func TestListCmd_WithServices(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(listServicesResponse{
+		_ = json.NewEncoder(w).Encode(listServicesResponse{
 			Services: []serviceEntry{
 				{Name: "app1", Target: "http://localhost:3001"},
 				{Name: "app2", Target: "http://localhost:3002"},
@@ -333,7 +333,7 @@ func TestListCmd_WithServices(t *testing.T) {
 func TestListCmd_Empty(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(listServicesResponse{Services: []serviceEntry{}})
+		_ = json.NewEncoder(w).Encode(listServicesResponse{Services: []serviceEntry{}})
 	}))
 	defer srv.Close()
 
@@ -353,7 +353,7 @@ func TestListCmd_Empty(t *testing.T) {
 func TestListCmd_ServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(apiError{Error: "サーバーエラー"})
+		_ = json.NewEncoder(w).Encode(apiError{Error: "サーバーエラー"})
 	}))
 	defer srv.Close()
 

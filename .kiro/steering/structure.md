@@ -17,7 +17,9 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 | `cmd/unregister.go` | `localgate unregister <name>` | サービス解除 |
 | `cmd/list.go` | `localgate list` | 登録済みサービス一覧 |
 | `cmd/watch.go` | `localgate watch` | LISTENポートを監視して自動登録・解除 |
+| `cmd/version.go` | `localgate version` | バージョン情報を表示 |
 | `cmd/client.go` | （共有） | クライアントコマンド共通の型・ユーティリティ |
+| `cmd/root.go` | （共有） | ルートコマンド定義 |
 
 **クライアントコマンドの共通パターン**:
 - `--server` フラグ → `$LOCALGATE_SERVER` 環境変数 → `http://localhost:9000` の優先順位でサーバーURLを解決
@@ -35,6 +37,7 @@ Go標準のプロジェクトレイアウト。CLIエントリポイント (`cmd
 | `internal/portal` | 管理ポータルHTMLページのハンドラ（`embed.FS`でHTMLを同梱、テンプレートでポーリング間隔を注入） |
 | `internal/watcher` | ポート自動監視（`/proc/net/tcp` スキャン）・登録・解除ロジック |
 | `internal/server` | HTTPサーバ本体、プロキシ/管理APIへのルーティング判定。`ServerConfig.Hostname` で追加の自己ホスト名を指定可能（コンテナ環境対応） |
+| `internal/version` | バージョン情報（`Version`, `Commit`, `BuildDate` 変数）とフォーマット出力。ビルド時に `-ldflags` で注入 |
 
 ### エントリポイント
 **Location**: `main.go`

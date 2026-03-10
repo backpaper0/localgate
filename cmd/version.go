@@ -14,7 +14,7 @@ func newVersionCmd() *cobra.Command {
 		Short: "バージョン情報を表示する",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintln(cmd.OutOrStdout(), version.FormatOutput())
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), version.FormatOutput())
 		},
 	}
 }

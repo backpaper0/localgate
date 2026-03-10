@@ -28,8 +28,12 @@ func TestRegisterAndLookup(t *testing.T) {
 func TestRegisterOverwrite(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000", false)
-	reg.Register("foo", "localhost:4000", true)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.Register("foo", "localhost:4000", true); err != nil {
+		t.Fatal(err)
+	}
 
 	target, found := reg.Lookup("foo")
 	if !found {
@@ -43,7 +47,9 @@ func TestRegisterOverwrite(t *testing.T) {
 func TestDeregister(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
 	if err := reg.Deregister("foo"); err != nil {
 		t.Fatalf("Deregister failed: %v", err)
 	}
@@ -84,7 +90,9 @@ func TestRegisterEmptyTarget(t *testing.T) {
 func TestRegister_AlreadyExists(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
 	err := reg.Register("foo", "localhost:4000", false)
 	if err == nil {
 		t.Fatal("expected ErrAlreadyExists, got nil")
@@ -102,7 +110,9 @@ func TestRegister_AlreadyExists(t *testing.T) {
 func TestRegister_ForceOverwrite(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
 	err := reg.Register("foo", "localhost:4000", true)
 	if err != nil {
 		t.Fatalf("expected no error with force=true, got: %v", err)
@@ -125,8 +135,12 @@ func TestListEmpty(t *testing.T) {
 func TestList(t *testing.T) {
 	reg := registry.NewServiceRegistry()
 
-	reg.Register("foo", "localhost:3000", false)
-	reg.Register("bar", "localhost:4000", false)
+	if err := reg.Register("foo", "localhost:3000", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.Register("bar", "localhost:4000", false); err != nil {
+		t.Fatal(err)
+	}
 
 	entries := reg.List()
 	if len(entries) != 2 {
@@ -152,7 +166,7 @@ func TestConcurrentAccess(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			name := fmt.Sprintf("service%d", i)
-			reg.Register(name, "localhost:3000", false)
+			_ = reg.Register(name, "localhost:3000", false)
 		}(i)
 		go func(i int) {
 			defer wg.Done()

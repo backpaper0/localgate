@@ -38,10 +38,10 @@ func newRegisterCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("接続エラー: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode == http.StatusCreated {
-				fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を登録しました\n", args[0])
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を登録しました\n", args[0])
 				return nil
 			}
 
@@ -51,21 +51,21 @@ func newRegisterCmd() *cobra.Command {
 			}
 
 			if resp.StatusCode == http.StatusConflict {
-				fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' は既に '%s' として登録されています。上書きしますか？ [y/N]: ", args[0], apiErr.ExistingTarget)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' は既に '%s' として登録されています。上書きしますか？ [y/N]: ", args[0], apiErr.ExistingTarget)
 				scanner := bufio.NewScanner(cmd.InOrStdin())
 				scanner.Scan()
 				answer := strings.TrimSpace(scanner.Text())
 				if answer != "y" && answer != "Y" {
-					fmt.Fprintf(cmd.OutOrStdout(), "キャンセルしました\n")
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "キャンセルしました\n")
 					return nil
 				}
 				resp2, err := sendRegisterRequest(serverURL, args[0], target, true)
 				if err != nil {
 					return fmt.Errorf("接続エラー: %v", err)
 				}
-				defer resp2.Body.Close()
+				defer func() { _ = resp2.Body.Close() }()
 				if resp2.StatusCode == http.StatusCreated {
-					fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を登録しました\n", args[0])
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "サービス '%s' を登録しました\n", args[0])
 					return nil
 				}
 				var apiErr2 apiError
