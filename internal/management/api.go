@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"localgate/internal/logger"
 	"localgate/internal/portal"
 	"localgate/internal/registry"
 )
@@ -45,17 +46,21 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var req registerServiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logger.Debug("サービス登録: リクエストボディ解析失敗", "error", err)
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	if req.Name == "" || req.Target == "" {
+		logger.Debug("サービス登録: nameまたはtargetが空")
 		writeError(w, http.StatusBadRequest, "name and target are required")
 		return
 	}
 	force := r.Header.Get("X-Force-Overwrite") == "true"
+	logger.Debug("サービス登録リクエスト", "name", req.Name, "target", req.Target, "force", force)
 	if err := a.registry.Register(req.Name, req.Target, force); err != nil {
 		if errors.Is(err, registry.ErrAlreadyExists) {
 			existingTarget, _ := a.registry.Lookup(req.Name)
+			logger.Debug("サービス登録競合", "name", req.Name, "existing_target", existingTarget)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
 			_ = json.NewEncoder(w).Encode(map[string]string{
@@ -64,9 +69,11 @@ func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		logger.Debug("サービス登録失敗", "name", req.Name, "error", err)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	logger.Debug("サービス登録完了", "name", req.Name, "target", req.Target)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(registry.ServiceEntry{Name: req.Name, Target: req.Target})
@@ -74,14 +81,18 @@ func (a *API) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) handleDeregister(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
+	logger.Debug("サービス解除リクエスト", "name", name)
 	if err := a.registry.Deregister(name); err != nil {
 		if errors.Is(err, registry.ErrNotFound) {
+			logger.Debug("サービス解除: 未登録", "name", name)
 			writeError(w, http.StatusNotFound, "service not found")
 			return
 		}
+		logger.Debug("サービス解除失敗", "name", name, "error", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	logger.Debug("サービス解除完了", "name", name)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -90,6 +101,7 @@ func (a *API) handleList(w http.ResponseWriter, r *http.Request) {
 	if entries == nil {
 		entries = []registry.ServiceEntry{}
 	}
+	logger.Debug("サービス一覧取得", "count", len(entries))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(ListServicesResponse{Services: entries})

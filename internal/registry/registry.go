@@ -3,6 +3,8 @@ package registry
 import (
 	"errors"
 	"sync"
+
+	"localgate/internal/logger"
 )
 
 // ServiceEntry はサービスのエントリを表す
@@ -44,9 +46,11 @@ func (r *inMemoryRegistry) Register(name, target string, force bool) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, exists := r.services[name]; exists && !force {
+		logger.Debug("registry.Register: 既に登録済み", "name", name)
 		return ErrAlreadyExists
 	}
 	r.services[name] = target
+	logger.Debug("registry.Register: 登録完了", "name", name, "target", target, "force", force)
 	return nil
 }
 
@@ -54,9 +58,11 @@ func (r *inMemoryRegistry) Deregister(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, ok := r.services[name]; !ok {
+		logger.Debug("registry.Deregister: 未登録", "name", name)
 		return ErrNotFound
 	}
 	delete(r.services, name)
+	logger.Debug("registry.Deregister: 解除完了", "name", name)
 	return nil
 }
 
@@ -64,6 +70,7 @@ func (r *inMemoryRegistry) Lookup(name string) (string, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	target, ok := r.services[name]
+	logger.Debug("registry.Lookup", "name", name, "found", ok, "target", target)
 	return target, ok
 }
 
