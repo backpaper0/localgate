@@ -32,7 +32,10 @@ FROM alpine:3
 
 COPY --from=binary /localgate /usr/local/bin/localgate
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN <<_EOF_
+chmod +x /usr/local/bin/localgate
+chmod +x /entrypoint.sh
+_EOF_
 
 EXPOSE 9000
 
