@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"localgate/internal/logger"
 )
 
 // ManagementClient は localgate 管理 API のクライアントインターフェース。
@@ -40,11 +42,14 @@ func NewManagementHTTPClient(serverURL string) *ManagementHTTPClient {
 
 // Ping は GET /services で管理 API への疎通確認を行う。
 func (c *ManagementHTTPClient) Ping() error {
+	logger.Debug("Ping: 管理APIへ接続確認", "url", c.serverURL+"/services")
 	resp, err := c.httpClient.Get(c.serverURL + "/services")
 	if err != nil {
+		logger.Debug("Ping: 接続失敗", "error", err)
 		return fmt.Errorf("管理APIへの接続に失敗: %w", err)
 	}
 	_ = resp.Body.Close()
+	logger.Debug("Ping: 接続成功", "status", resp.StatusCode)
 	return nil
 }
 
@@ -62,12 +67,15 @@ func (c *ManagementHTTPClient) Register(name, target string) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	logger.Debug("Register: POSTリクエスト送信", "name", name, "target", target)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logger.Debug("Register: リクエスト失敗", "name", name, "error", err)
 		return fmt.Errorf("サービス登録リクエストに失敗: %w", err)
 	}
 	_ = resp.Body.Close()
 
+	logger.Debug("Register: レスポンス受信", "name", name, "status", resp.StatusCode)
 	if resp.StatusCode == http.StatusCreated {
 		return nil
 	}
@@ -82,12 +90,15 @@ func (c *ManagementHTTPClient) Deregister(name string) error {
 		return err
 	}
 
+	logger.Debug("Deregister: DELETEリクエスト送信", "name", name)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logger.Debug("Deregister: リクエスト失敗", "name", name, "error", err)
 		return fmt.Errorf("サービス解除リクエストに失敗: %w", err)
 	}
 	_ = resp.Body.Close()
 
+	logger.Debug("Deregister: レスポンス受信", "name", name, "status", resp.StatusCode)
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotFound {
 		return nil
 	}

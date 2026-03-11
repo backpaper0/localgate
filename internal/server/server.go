@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"localgate/internal/logger"
 	"localgate/internal/management"
 	"localgate/internal/proxy"
 	"localgate/internal/registry"
@@ -74,9 +75,12 @@ func (s *ProxyServer) Shutdown(ctx context.Context) error {
 func (s *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	if host == "" {
+		logger.Debug("リクエスト拒否: Hostヘッダなし", "method", r.Method, "path", r.URL.Path)
 		writeError(w, http.StatusBadRequest, "invalid host header")
 		return
 	}
+
+	logger.Debug("リクエスト受信", "method", r.Method, "host", host, "path", r.URL.Path)
 
 	// ポートを除去して小文字に正規化
 	hostname := host
@@ -87,22 +91,27 @@ func (s *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// 自己ホスト名チェック
 	if _, isSelf := s.selfHostnames[hostname]; isSelf {
+		logger.Debug("管理APIへルーティング (自己ホスト名)", "hostname", hostname)
 		s.management.ServeHTTP(w, r)
 		return
 	}
 
 	subdomain := proxy.ExtractSubdomain(host)
 	if subdomain == "" {
+		logger.Debug("管理APIへルーティング (サブドメインなし)", "hostname", hostname)
 		s.management.ServeHTTP(w, r)
 		return
 	}
 
+	logger.Debug("サービス検索", "subdomain", subdomain)
 	target, found := s.registry.Lookup(subdomain)
 	if !found {
+		logger.Debug("サービス未登録", "subdomain", subdomain)
 		writeError(w, http.StatusNotFound, "service not found")
 		return
 	}
 
+	logger.Debug("プロキシ転送", "subdomain", subdomain, "target", target)
 	s.proxy.ServeHTTP(w, r, target)
 }
 
